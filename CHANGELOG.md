@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P1-6: The plugin is released as 0.0.3 with the sidecar 0.0.3.
 - P1-5: The plugin is released as 0.0.2 with the sidecar 0.0.2 and listed in the registry.
 - P1-3: The plugin is public as `soksak-app/plugin-term`, released as 0.0.1 and listed in the registry.
 - P1-3-1: The pre-push hook checks every pushed commit on the first push of a repository.
