@@ -1,0 +1,539 @@
+{
+  "schema": 3,
+  "layers": [
+    "plugin"
+  ],
+  "events": {
+    "plugin.term.ime": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "shift": {
+            "type": "boolean"
+          },
+          "alt": {
+            "type": "boolean"
+          },
+          "ctrl": {
+            "type": "boolean"
+          },
+          "selectedRange": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "replacementRange": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "attributed": {
+            "type": "boolean"
+          },
+          "cids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "description": "A native callback of the input method (insert, key, compose) with every field it carries, the typed text and the ranges included."
+    },
+    "plugin.term.input": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "shift": {
+            "type": "boolean"
+          },
+          "alt": {
+            "type": "boolean"
+          },
+          "ctrl": {
+            "type": "boolean"
+          },
+          "selectedRange": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "replacementRange": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "attributed": {
+            "type": "boolean"
+          },
+          "focused": {
+            "type": "boolean"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "queued": {
+            "type": "boolean"
+          },
+          "queue": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "queued",
+          "queue"
+        ]
+      },
+      "description": "One input of the terminal with every field it carries; queued is true while the input waits for the session and queue is the number of inputs that wait."
+    },
+    "plugin.term.wheel": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "deltaY": {
+            "type": "number"
+          },
+          "deltaMode": {
+            "type": "number"
+          },
+          "cellHeight": {
+            "type": "number"
+          },
+          "lines": {
+            "type": "number"
+          },
+          "carry": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deltaY",
+          "deltaMode",
+          "cellHeight",
+          "lines",
+          "carry"
+        ]
+      },
+      "description": "A wheel gesture over the terminal: its vertical move and unit, the cell height, the whole lines it sends (0 for a move smaller than a line) and the carry that waits for the next move."
+    },
+    "plugin.term.input.flush": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "description": "The inputs that waited for the session are sent, count of them."
+    },
+    "plugin.term.input.overflow": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "warn",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "max": {
+            "type": "number"
+          },
+          "queue": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "max",
+          "queue"
+        ]
+      },
+      "description": "An input is refused because the queue of inputs that wait for the session holds max inputs; the input is rejected with an error."
+    },
+    "plugin.term.session.gate": {
+      "layer": "plugin",
+      "class": "lifecycle",
+      "level": "info",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "event": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "open",
+          "event"
+        ]
+      },
+      "description": "The session gate opened or closed because of the sidecar event named in event; inputs wait while it is closed."
+    },
+    "plugin.term.session.open": {
+      "layer": "plugin",
+      "class": "lifecycle",
+      "level": "info",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "shell": {
+            "type": "string"
+          },
+          "directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "shell",
+          "directory"
+        ]
+      },
+      "description": "The terminal asks the sidecar to open its session with the shell and the working directory."
+    },
+    "plugin.term.close": {
+      "layer": "plugin",
+      "class": "lifecycle",
+      "level": "info",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "description": "The terminal ends its session at the removal of the surface."
+    },
+    "plugin.term.send": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "description": "A message to the sidecar with its whole body."
+    },
+    "plugin.term.send.result": {
+      "layer": "plugin",
+      "class": "call",
+      "level": [
+        "debug",
+        "warn"
+      ],
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "ok",
+          "micros"
+        ]
+      },
+      "description": "The result of a message to the sidecar; error is <code>: <text> when ok is false."
+    },
+    "plugin.term.session.rejected.shed": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "info",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "description": "A rejected sequence reason was dropped from the list of the kept reasons; count is the running count of the dropped reasons of the session."
+    },
+    "plugin.term.sidecar.unknown": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "warn",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event"
+        ]
+      },
+      "description": "The sidecar sent an event that the terminal does not handle; event is its name."
+    },
+    "plugin.term.sidecar.event": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "trace",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "description": "An event of the sidecar with its whole body, before the terminal handles it."
+    },
+    "plugin.term.region": {
+      "layer": "plugin",
+      "class": "input",
+      "level": "trace",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "focused": {
+            "type": "boolean"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "cids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "description": "An event of the image region with its type and its whole body, before the terminal handles it."
+    },
+    "plugin.term.screen.refused": {
+      "layer": "plugin",
+      "class": "frame",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number"
+          },
+          "previous": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "number",
+          "previous"
+        ]
+      },
+      "description": "A change form arrived while the view awaited the full form that answers its screen read, and the view refused it; number and previous are the members of the change."
+    },
+    "plugin.term.frame": {
+      "layer": "plugin",
+      "class": "frame",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "string"
+          },
+          "segment": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "number"
+          },
+          "rows": {
+            "type": "number"
+          },
+          "cols": {
+            "type": "number"
+          },
+          "frame": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "generation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "raster": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "generation",
+              "raster",
+              "sequence"
+            ],
+            "additionalProperties": false
+          },
+          "hash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session",
+          "segment",
+          "sequence",
+          "rows",
+          "cols",
+          "frame",
+          "hash"
+        ]
+      },
+      "description": "The accepted native frame tuple or null for the sidecar screen message, its session, replay segment and message sequence, grid dimensions, and the screen SHA-256 as 64 lowercase hexadecimal characters."
+    },
+    "plugin.term.view.content_frame": {
+      "layer": "plugin",
+      "class": "frame",
+      "level": "trace",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 0 },
+          "width": { "type": "number", "minimum": 0 },
+          "height": { "type": "number", "minimum": 0 },
+          "documentTimeOriginMs": { "type": "number", "minimum": 0 },
+          "firstResizeAtMs": { "type": "number", "minimum": 0 },
+          "resizeAtMs": { "type": "number", "minimum": 0 },
+          "resizeCount": { "type": "integer", "minimum": 1 },
+          "frameTimeMs": { "type": "number", "minimum": 0 },
+          "surface": { "type": "string" }
+        },
+        "required": ["sequence", "width", "height", "documentTimeOriginMs", "firstResizeAtMs", "resizeAtMs", "resizeCount", "frameTimeMs", "surface"],
+        "additionalProperties": false
+      },
+      "description": "An explicitly observed content-box size after ResizeObserver and the next animation frame, with the first and latest resize times, resize count, frame time, and runtime surface identifier in the view document clock."
+    },
+    "plugin.term.error": {
+      "layer": "plugin",
+      "class": "lifecycle",
+      "level": "error",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "message"
+        ]
+      },
+      "description": "An error that the terminal shows in its session status; source names where it came from."
+    }
+  }
+}

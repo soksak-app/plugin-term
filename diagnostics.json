@@ -1,0 +1,110 @@
+{
+  "module": "ui/terminal-diagnostics.js",
+  "exposes": {
+    "status": [
+      { "name": "term.pointer.trace", "description": "Bounded pointer, capture, focus and mouse result trace.",
+        "schema": { "type": "object", "properties": {
+          "enabled": { "type": "boolean" }, "overflow": { "type": "boolean" }, "entries": { "type": "array" }
+        } }
+      },
+      {
+        "name": "term.ime.trace",
+        "description": "The explicitly enabled bounded IME callback and terminal-input diagnostic trace.",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "overflow": { "type": "boolean" },
+            "entries": { "type": "array" }
+          }
+        }
+      },
+      {
+        "name": "term.view.frames",
+        "description": "Whether explicit source document content-frame observation is active.",
+        "schema": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" } }
+        }
+      }
+    ],
+    "commands": [
+      { "name": "term.pointer.trace", "description": "Starts or stops the bounded pointer trace.",
+        "params": { "type": "object", "properties": { "action": { "type": "string", "enum": ["start", "stop"] } } },
+        "result": { "type": "object", "properties": {
+          "enabled": { "type": "boolean" }, "overflow": { "type": "boolean" }, "entries": { "type": "array" }
+        } }
+      },
+      {
+        "name": "term.compose.update",
+        "description": "Updates the active native terminal preedit without writing PTY bytes.",
+        "params": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "markedRange": { "type": ["object", "null"],
+              "properties": { "location": { "type": "integer" }, "length": { "type": "integer" } } },
+            "selectedRange": { "type": ["object", "null"], "properties": {
+              "location": { "type": "integer" }, "length": { "type": "integer" }
+            } },
+            "replacementRange": { "type": ["object", "null"], "properties": {
+              "location": { "type": "integer" }, "length": { "type": "integer" }
+            } },
+            "attributed": { "type": "boolean" }
+          }
+        },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "term.pty.pending",
+        "description": "Reads the master-written PTY bytes the child has not yet read and the cumulative child output bytes the session reader has read.",
+        "params": { "type": "object", "properties": {} },
+        "result": { "type": "object", "properties": { "pending": { "type": "integer" }, "written": { "type": "integer" } } }
+      },
+      {
+        "name": "term.screen.alter",
+        "description": "Changes the next screen message before the page checks and hashes it, as a change between the sidecar and the page would.",
+        "params": { "type": "object", "properties": {} },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "term.ime.trace",
+        "description": "Starts or stops the bounded real IME callback and terminal-input trace.",
+        "params": {
+          "type": "object",
+          "properties": { "action": { "type": "string", "enum": ["start", "stop"] } }
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "overflow": { "type": "boolean" },
+            "entries": { "type": "array" }
+          }
+        }
+      },
+      {
+        "name": "term.view.history",
+        "description": "Reads the current browser history length of this terminal view document.",
+        "params": { "type": "object", "properties": {} },
+        "result": { "type": "object", "properties": { "length": { "type": "integer" } } }
+      },
+      {
+        "name": "term.view.frames",
+        "description": "Starts or stops source document content-frame observation.",
+        "params": {
+          "type": "object",
+          "properties": { "action": { "type": "string", "enum": ["start", "stop"] } }
+        },
+        "result": { "type": "object", "properties": {
+          "enabled": { "type": "boolean" },
+          "sourceClock": { "type": "object", "properties": {
+            "documentTimeOriginMs": { "type": "number" },
+            "sourceNowMs": { "type": "number" },
+            "sourceResolutionMs": { "type": "number", "enum": [1] }
+          } }
+        } }
+      }
+    ]
+  }
+}

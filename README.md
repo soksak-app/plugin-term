@@ -1,0 +1,16 @@
+# Term plugin
+
+[한국어](README.ko.md)
+
+Term plugin: a full-screen terminal surface whose sidecar `@soksak/sidecar-alacritty` draws its frames on the GPU and presents them in the lease mode of its image region. The plugin format is defined in the soksak core specification (`docs/spec/plugins.md`).
+
+```sh
+make test                                   # tests
+make check                                  # census and record checks
+make pack OUT=<folder> # the plugin release
+make hooks                                  # once after cloning: check commit messages and records at commit time
+```
+
+`make check` runs the census check of the events kit and the record check of the records kit that `package.json` pins. The application validates `plugin.json` when it installs the release, and the registry check compares the exposed names of the release with the declarations of each listed core.
+
+The checklist is [docs/features.md](docs/features.md).

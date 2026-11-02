@@ -1,0 +1,42 @@
+{
+  "name": "@soksak/plugin-term",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "description": "Term plugin: a full-screen terminal surface whose sidecar draws its frames on the GPU and presents them in the lease mode.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soksak-app/plugin-term.git"
+  },
+  "engines": {
+    "soksak": "^0.0.32"
+  },
+  "files": [
+    "plugin.json",
+    "diagnostics.json",
+    "ui/terminal-diagnostics.js",
+    "events.json",
+    "ui/terminal.html",
+    "ui/view.js",
+    "ui/view-clipboard.js",
+    "ui/view-context.js",
+    "ui/view-exposes.js",
+    "ui/view-diagnostics.js",
+    "ui/view-exposure-port.js",
+    "ui/view-sidecar.js",
+    "ui/terminal-view.js",
+    "ui/terminal.js"
+  ],
+  "scripts": {
+    "test": "node scripts/build-test.mjs && node --test test/"
+  },
+  "devDependencies": {
+    "@soksak/kit-events": "https://github.com/soksak-app/kit-events/releases/download/v0.0.1/soksak-kit-events-0.0.1.tgz",
+    "@soksak/kit-records": "https://github.com/soksak-app/kit-records/releases/download/v0.0.1/soksak-kit-records-0.0.1.tgz",
+    "acorn": "^8.19.0",
+    "ajv": "8.20.0",
+    "jsdom": "^30.1.1"
+  }
+}
