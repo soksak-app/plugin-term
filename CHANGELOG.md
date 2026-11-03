@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P8: The page judges the caret of a `view` event against the grid of that event.
 - P7: The `term.screen` status notifies a watcher of each drawn frame through a screen read that follows its view event, and a read of the status returns the current screen.
 - F402-term: `engines.soksak` is `^0.0.33`, and the version is 0.0.6. Red: the core version test failed on `^0.0.32`. Green: it passes.
 - P6: The tests of a slow selection reply wait for the message that ends the gesture instead of a fixed time.
