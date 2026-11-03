@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P13: P10의 이름과 package 설명을 담는 version 0.0.8. release된 0.0.7에는 둘 다 없다. Red: `test/manifest.test.mjs`가 `'0.0.7' !== '0.0.8'`로 실패했다. Green: 통과한다.
 - P10: plugin 이름은 `네이티브 터미널`이고, package 설명과 README는 sidecar가 각 frame을 CPU로 바뀐 행의 strip에 그리고 host가 그 frame을 image region의 lease 방식으로 보인다고 적는다. Red: `test/frame-description.test.mjs`의 test가 `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU`, `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed`, `these descriptions do not state that the host presents the frame in the lease mode of its image region`으로 실패했다. Green: 4 test가 통과한다.
 - F432-term: `engines.soksak`은 `^0.0.34`이고, sidecar `^0.0.6`을 요구하며 version은 0.0.7이다. Red: core version test가 `^0.0.33`에서 실패했다. Green: 통과한다.
 - P9: 세션의 첫 state 전의 포인터가 입력을 보내지 않아 터미널 오류가 나타나지 않는다.
