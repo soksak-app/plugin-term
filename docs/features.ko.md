@@ -2,6 +2,7 @@
 
 [English](features.md)
 
+- [ ] P10 — P1: plugin의 이름과 설명이 frame을 그리는 방식을 바르게 밝힌다. 입력: `plugin.json`은 plugin 이름을 `GPU 터미널`로 적고, `package.json`과 README(+ko)는 sidecar가 frame을 GPU로 그린다고 적는다. 동작: sidecar는 모든 frame을 CPU로 바뀐 행의 strip에 그린다(sidecar alacritty S1-13, strip frame). 기대: 이름과 설명이 GPU를 말하지 않고, 이름과 package 설명은 plugin의 다음 release로 사용자에게 간다.
 - [o] F432-term — P0, core F432와 연결: plugin이 `engines.soksak` `^0.0.34`를 선언해 core release 0.0.34가 설치하고, sidecar `^0.0.6`을 요구하며 version은 0.0.7이다. Red: `test/core-version.test.mjs`가 `^0.0.33`에서 실패했다. Green: 통과한다. 결과: release run이 v0.0.7을 게시했고 registry가 이를 올렸다.
 - [o] P9 — P0: 세션의 첫 state 전의 포인터는 입력을 보내지 않는다. 입력: sidecar에 아직 이미지가 없는 터미널 위의 포인터. 동작: page가 8 x 16의 임시 칸 크기를 가지고 mouse 이동이나 누름을 보냈고, sidecar가 `mouse image is not configured`로 답하여 터미널이 오류로 표시했다. 기대: 칸 크기는 첫 state까지 0이고, 그 전의 hover와 누름은 아무것도 보내지 않는다. Red: `a pointer before the first state of the session sends no input`이 mouse 연산을 보내어 실패했다. Green: 같은 test가 통과한다.
 - [o] P8 — P0: page가 `view` 이벤트의 caret을 그 이벤트의 격자로 판정한다. 입력: session이 아직 기본값 80x24인 상태에서 `state` 이벤트보다 먼저 도착한 새 격자의 `view` 이벤트. 동작: page가 `cursor.caret is outside the screen grid 80x24`를 terminal 오류로 보고했다. 기대: 이벤트의 `rows`와 `cols`가 caret을 판정한다. Red: tracked test `a view event publishes the cursor of its frame, moves the input-method caret and reports the scrollback`이 `a caret inside the grid of its frame was refused`로 실패했다. Green: 통과한다. 격자를 싣는 사이드카 release가 필요하다.
