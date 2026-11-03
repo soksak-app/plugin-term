@@ -2,6 +2,7 @@
 
 [English](features.md)
 
+- [~] P2 — P0, sidecar alacritty S20과 연결: plugin은 frame 시계가 잡아 둔 출력이 화면을 만들지 않는 sidecar 0.0.4를 요구한다. 진행 중: 이 version의 release run이 돈다. registry가 그 뒤를 잇는다.
 - [o] P1 — P1: image region이 `@soksak/sidecar-alacritty`의 frame을 core lease 방식(F386)으로 보이고 screen을 요청할 때 읽는 terminal plugin. copy 방식 기준인 terminal plugin 옆에 둔다. P1-1부터 P1-6까지 완료했다.
   - [o] P1-1 — P1: 저장소는 terminal plugin의 tree에서 시작한다. id는 `term`, package는 `@soksak/plugin-term` 0.0.1, command·status·event 이름은 `term`, sidecar는 `@soksak/sidecar-alacritty` `^0.0.1`, region `view`는 `present: "lease"`다. Red: `test/manifest.test.mjs`가 이름 `terminal`, sidecar `@soksak/sidecar-vt-alacritty`, `present` `copy`를 가진 terminal plugin의 manifest에서 실패했다. Green: 이 저장소의 manifest에서 통과하고, `make test`와 `make check`가 통과한다.
   - [o] P1-2 — P1: sidecar는 요청할 때만 screen을 보내므로, view는 frame의 커서, caret, scrollback을 sidecar의 `view` 이벤트(S1-7)에서 받고 `term.screen`은 각 read를 따른다([인수 기준](spec/acceptance.ko.md)). Red: `test/terminal.test.mjs`의 `a view event publishes the cursor of its frame, moves the input-method caret and reports the scrollback`이 `term.cursor`의 null caret과 frame으로 실패했다. Green: 통과하고, grid 밖 caret은 오류로 거부된다. `make test`와 `make check`가 통과한다.
