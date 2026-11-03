@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P3: The session status exposes the input that the sidecar holds as `inputHeld`, which is `{queued, held}` while held and `null` otherwise. An invalid `input_held` event is refused as an input error. Red: the test `an input_held event publishes the held input and clears it when reads resume` failed with `no input is held before the first input_held event`; Green: it passes, and the test file passes 181 of 181.
 - P2: The plugin requires the sidecar 0.0.4, and the version is 0.0.4.
 - P1-4: The comparison with the plugin `terminal` is measured: a frame of a status line takes 1.5 ms of application CPU against 12.4 ms, and a frame of 20 rewritten rows takes 4.1 ms against 14.6 ms.
 - P1-6: The plugin is released as 0.0.3 with the sidecar 0.0.3.

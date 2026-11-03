@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P3: session status는 sidecar가 붙잡고 있는 입력을 `inputHeld`로 드러낸다. 붙잡혀 있는 동안은 `{queued, held}`이고, 그 밖에는 `null`이다. 잘못된 `input_held` event는 입력 오류로 거부한다.
 - P2: plugin은 sidecar 0.0.4를 요구하고 version은 0.0.4다.
 - P1-4: plugin `terminal`과의 비교를 쟀다. 상태 줄 frame은 앱 CPU 1.5 ms 대 12.4 ms, 20행을 다시 쓰는 frame은 4.1 ms 대 14.6 ms다.
 - P1-6: plugin을 sidecar 0.0.3과 함께 0.0.3으로 release했다.
