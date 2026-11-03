@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-term plugin은 전체 화면 terminal surface다. sidecar `@soksak/sidecar-alacritty`가 frame을 GPU로 그리고, image region의 lease 방식으로 보인다. Plugin 형식은 soksak core spec(`docs/spec/plugins.md`)이 정한다.
+term plugin은 전체 화면 terminal surface다. sidecar `@soksak/sidecar-alacritty`가 각 frame을 CPU로 바뀐 행의 strip에 그리고, image region의 lease 방식으로 보인다. Plugin 형식은 soksak core spec(`docs/spec/plugins.md`)이 정한다.
 
 ```sh
 make test                                   # test
