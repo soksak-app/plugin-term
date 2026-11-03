@@ -2,6 +2,8 @@
 
 [English](features.md)
 
+- [ ] P12 — P0, core F502-13과 연결: P11을 release한다. 기대: release는 F502-13의 core release 뒤, core F502-25가 시작하기 전에 게시되고, registry는 그것을 그 core release와 함께 올린다(registry G100).
+- [ ] P11 — P0, core F502-13과 연결: plugin이 노출하는 element를 element entry로 선언한다. 입력: core F502-13은 모든 host에서 exposure 종류 `dom`을 `element`로 바꾸고, 그 core release는 `exposes.dom`을 `plugin <id>: exposes.dom is removed; an exposed element is declared in exposes.element`로 거부한다. 기대: `plugin.json`은 `exposes.element`를 선언하고, `ui/terminal.js`는 `expose.element`를 호출하며, 그 test와 `ui/view-exposure-port.js`의 주석은 element entry를 말한다, plugin은 term 검사가 `dom entry`와 `dom name`을 거부하는 records kit KR9의 release를 pin하고, `engines.soksak`은 F502-13의 core release를 요구한다. 이 변경은 그 core release 뒤에 시작한다.
 - [ ] P10 — P1: plugin의 이름과 설명이 frame을 그리는 방식을 바르게 밝힌다. 입력: `plugin.json`은 plugin 이름을 `GPU 터미널`로 적고, `package.json`과 README(+ko)는 sidecar가 frame을 GPU로 그린다고 적는다. 동작: sidecar는 모든 frame을 CPU로 바뀐 행의 strip에 그린다(sidecar alacritty S1-13, strip frame). 기대: 이름과 설명이 GPU를 말하지 않고, 이름과 package 설명은 plugin의 다음 release로 사용자에게 간다.
 - [o] F432-term — P0, core F432와 연결: plugin이 `engines.soksak` `^0.0.34`를 선언해 core release 0.0.34가 설치하고, sidecar `^0.0.6`을 요구하며 version은 0.0.7이다. Red: `test/core-version.test.mjs`가 `^0.0.33`에서 실패했다. Green: 통과한다. 결과: release run이 v0.0.7을 게시했고 registry가 이를 올렸다.
 - [o] P9 — P0: 세션의 첫 state 전의 포인터는 입력을 보내지 않는다. 입력: sidecar에 아직 이미지가 없는 터미널 위의 포인터. 동작: page가 8 x 16의 임시 칸 크기를 가지고 mouse 이동이나 누름을 보냈고, sidecar가 `mouse image is not configured`로 답하여 터미널이 오류로 표시했다. 기대: 칸 크기는 첫 state까지 0이고, 그 전의 hover와 누름은 아무것도 보내지 않는다. Red: `a pointer before the first state of the session sends no input`이 mouse 연산을 보내어 실패했다. Green: 같은 test가 통과한다.
