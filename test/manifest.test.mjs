@@ -27,7 +27,7 @@ test("the package publishes the manifest and the view page", () => {
 
 test("the local transaction candidate requires the sidecar input transaction contract", () => {
   assert.equal(manifest.dependencies["@soksak/sidecar-alacritty"], "^0.0.5");
-  assert.equal(pkg.version, "0.0.5");
+  assert.equal(pkg.version, "0.0.6");
 });
 
 test("compose and cursor preedit schemas use the supported range keywords", () => {
