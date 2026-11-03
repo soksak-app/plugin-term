@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P1-4: The comparison with the plugin `terminal` is measured: a frame of a status line takes 1.5 ms of application CPU against 12.4 ms, and a frame of 20 rewritten rows takes 4.1 ms against 14.6 ms.
 - P1-6: The plugin is released as 0.0.3 with the sidecar 0.0.3.
 - P1-5: The plugin is released as 0.0.2 with the sidecar 0.0.2 and listed in the registry.
 - P1-3: The plugin is public as `soksak-app/plugin-term`, released as 0.0.1 and listed in the registry.

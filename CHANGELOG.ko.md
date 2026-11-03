@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P1-4: plugin `terminal`과의 비교를 쟀다. 상태 줄 frame은 앱 CPU 1.5 ms 대 12.4 ms, 20행을 다시 쓰는 frame은 4.1 ms 대 14.6 ms다.
 - P1-6: plugin을 sidecar 0.0.3과 함께 0.0.3으로 release했다.
 - P1-5: plugin을 sidecar 0.0.2와 함께 0.0.2로 release하고 registry에 등록했다.
 - P1-3: plugin은 `soksak-app/plugin-term`으로 공개되고, 0.0.1로 release되고, registry에 등록됐다.
