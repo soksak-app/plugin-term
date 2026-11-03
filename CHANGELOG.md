@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- P10: The plugin is named `네이티브 터미널`, and the package description and the README state that the sidecar draws each frame on the CPU into the strips of the rows that changed. Red: the tests of `test/frame-description.test.mjs` failed with `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU` and `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed`. Green: the 3 tests pass.
+- P10: The plugin is named `네이티브 터미널`, and the package description and the README state that the sidecar draws each frame on the CPU into the strips of the rows that changed and that the host presents the frame in the lease mode of its image region. Red: the tests of `test/frame-description.test.mjs` failed with `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU`, `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed` and `these descriptions do not state that the host presents the frame in the lease mode of its image region`. Green: the 4 tests pass.
 - F432-term: `engines.soksak` is `^0.0.34`, and it requires `^0.0.6` of its sidecar, and the version is 0.0.7. Red: the core version test failed on `^0.0.33`. Green: it passes.
 - P9: A pointer before the first state of a session sends no input, so it shows no terminal error.
 - P8: The page judges the caret of a `view` event against the grid of that event.

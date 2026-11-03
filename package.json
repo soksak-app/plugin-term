@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
-  "description": "Term plugin: a full-screen terminal surface whose sidecar draws each frame on the CPU into the strips of the rows that changed and presents it in the lease mode of its image region.",
+  "description": "Term plugin: a full-screen terminal surface. Its sidecar draws each frame on the CPU into the strips of the rows that changed, and the host presents the frame in the lease mode of its image region.",
   "license": "MIT",
   "repository": {
     "type": "git",

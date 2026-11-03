@@ -2,7 +2,7 @@
 
 [한국어](README.ko.md)
 
-Term plugin: a full-screen terminal surface whose sidecar `@soksak/sidecar-alacritty` draws each frame on the CPU into the strips of the rows that changed and presents it in the lease mode of its image region. The plugin format is defined in the soksak core specification (`docs/spec/plugins.md`).
+Term plugin: a full-screen terminal surface. Its sidecar `@soksak/sidecar-alacritty` draws each frame on the CPU into the strips of the rows that changed, and the host presents the frame in the lease mode of its image region. The plugin format is defined in the soksak core specification (`docs/spec/plugins.md`).
 
 ```sh
 make test                                   # tests
