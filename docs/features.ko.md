@@ -9,4 +9,4 @@
     - [o] P1-3-1 — P1: pre-push hook은 origin/main이 없는 저장소의 첫 push에서 push하는 head의 commit을 모두 검사한다. Red: `test/pre-push.test.mjs`가 첫 push에서 `ambiguous argument 'origin/main..<sha>'`로 실패했다. Green: 첫 push와 이미 있는 remote ref의 push에서 통과한다.
   - [o] P1-5 — P1: image surface를 GPU frame으로 그리는 sidecar `@soksak/sidecar-alacritty` `^0.0.2`로 0.0.2를 release하고 registry에 등록한다. 결과: 이 version의 push에서 release job이 `soksak-plugin-term-0.0.2.tgz`를 게시했고, registry가 그것을 등록했다.
   - [o] P1-6 — P1: GPU pass 없이 frame을 그리는 sidecar `@soksak/sidecar-alacritty` `^0.0.3`으로 0.0.3을 release하고 registry에 등록한다. 결과: release job이 `soksak-plugin-term-0.0.3.tgz`를 게시했고, registry가 이를 올렸다(그 저장소의 G76).
-  - [!] P1-4 — P2: 같은 창과 같은 출력에서 terminal plugin과 frame당 CPU 시간을 잰다. Held: 측정은 개발 뒤에 한다. Cause: 측정은 완성된 구현을 비교한다. Retry when: P1-1부터 P1-3까지 완료된다.
+  - [!] P1-4 — P2: 같은 창과 같은 출력에서 terminal plugin과 frame당 CPU 시간을 잰다. Held: 두 터미널은 가려지지 않은 창에서 비교한다. Cause: session은 page가 image region을 구성한 뒤에 열리고, 가려진 창에서는 두 터미널 모두 session을 열지 않는다(`host.window`가 `occluded: true`를 보고하고 둘 다 `sessionId`가 비어 있다). Retry when: 비교할 창에 대해 `host.window`가 `occluded: false`를 보고한다.
