@@ -25,8 +25,11 @@ test("the package publishes the manifest and the view page", () => {
   assert.equal(manifest.surface.module, undefined, "a view surface has no module");
 });
 
-test("the local transaction candidate requires the sidecar input transaction contract", () => {
+test("the plugin depends on the sidecar release that bounds the output and the input of a session", () => {
   assert.equal(manifest.dependencies["@soksak/sidecar-alacritty"], "^0.0.6");
+});
+
+test("the package declares the version of its next release", () => {
   assert.equal(pkg.version, "0.0.8");
 });
 
