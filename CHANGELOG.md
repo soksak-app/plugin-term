@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P16: The core compatibility document states `^0.0.34`, the range that the package declares, and a test compares both documents with `engines.soksak`. Red: the test failed with `^0.0.33` against `^0.0.34`. Green: it passes.
 - P15: The view clipboard carries a PNG through the binary path of the view document: `persistPNG` uploads the bytes and sends their id as `{binary}`, and a `png` read downloads the bytes of its id. `engines.soksak` stays `^0.0.34` until a core release carries F518. Red: 8 of the 13 tests of `test/view-clipboard.test.mjs` failed, among them `the view clipboard downloads the bytes of the binary id of a PNG read` with `clipboard png response is invalid`. Green: the 13 tests pass.
 - P14: The manifest test of the sidecar range and the package version, named `the local transaction candidate requires the sidecar input transaction contract`, is split into `the plugin depends on the sidecar release that bounds the output and the input of a session` and `the package declares the version of its next release`, with its assertions unchanged.
 - P13: Version 0.0.8, which carries the name and the package description of P10, because the released 0.0.7 holds neither. Red: `test/manifest.test.mjs` failed with `'0.0.7' !== '0.0.8'`. Green: it passes.
