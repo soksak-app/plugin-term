@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F432-term: `engines.soksak` is `^0.0.34`, and it requires `^0.0.6` of its sidecar, and the version is 0.0.7. Red: the core version test failed on `^0.0.33`. Green: it passes.
 - P9: A pointer before the first state of a session sends no input, so it shows no terminal error.
 - P8: The page judges the caret of a `view` event against the grid of that event.
 - P7: The `term.screen` status notifies a watcher of each drawn frame through a screen read that follows its view event, and a read of the status returns the current screen.
