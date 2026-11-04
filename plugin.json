@@ -561,7 +561,7 @@
         }
       }
     ],
-    "dom": [
+    "element": [
       {
         "name": "term.view",
         "description": "The terminal view area."
