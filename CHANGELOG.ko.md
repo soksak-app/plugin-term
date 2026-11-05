@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P23: view가 알기 전에 다시 뜬 서비스에 닿은 입력이 session 오류와 함께 사라지지 않고 다시 열린 session으로 흐른다.
 - P22: 열린 session이 `Session not open` 답을 해소하므로, service가 다시 뜬 뒤의 `term.session`에 그 오류가 남지 않는다.
 - P21: session open이나 연결이 실패하면 `term.input`과 `term.paste`는 host가 10 s 뒤에 command를 끝낼 때까지 기다리지 않고 이유와 함께 끝난다.
 - P20: 열리는 session이 값과 무관하게 region의 focus를 읽으므로, reload된 view가 다시 붙는 preserved session에 filled cursor가 남지 않는다.
