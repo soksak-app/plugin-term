@@ -5,6 +5,7 @@
 ## Unreleased
 
 - F460-term: `.gitignore` names the local output folder `/build/`.
+- F468-term: The repository runs `soksak-check docs` and `soksak-check events` of the kit with `event-sources.json`.
 - F466-term: The repository pins the kit release that reports a citation of a local build log or a temporary log.
 - F467-term: The repository pins `@soksak/kit`.
 - F463-term: The repository uses the checks kit and its one executable `soksak-check`.
