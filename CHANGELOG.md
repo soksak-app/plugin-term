@@ -17,6 +17,7 @@
 - P13: Version 0.0.8, which carries the name and the package description of P10, because the released 0.0.7 holds neither. Red: `test/manifest.test.mjs` failed with `'0.0.7' !== '0.0.8'`. Green: it passes.
 - P10: The plugin is named `네이티브 터미널`, and the package description and the README state that the sidecar draws each frame on the CPU into the strips of the rows that changed and that the host presents the frame in the lease mode of its image region. Red: the tests of `test/frame-description.test.mjs` failed with `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU`, `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed` and `these descriptions do not state that the host presents the frame in the lease mode of its image region`. Green: the 4 tests pass.
 - F460-term: `.gitignore` names the local output folder `/build/`.
+- F472-term: The names of the commands state what they do, and `sok-check commands` holds them.
 - F468-term: The repository runs `soksak-check docs` and `soksak-check events` of the kit with `event-sources.json`.
 - F466-term: The repository pins the kit release that reports a citation of a local build log or a temporary log.
 - F467-term: The repository pins `@soksak/kit`.
