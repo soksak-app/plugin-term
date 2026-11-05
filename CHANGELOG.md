@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P21: `term.input` and `term.paste` end with the reason when the open of the session failed or its connection failed, instead of waiting until the host ends the command after 10 s.
 - P20: A session that opens reads the focus of the region whichever value it has, so a view that reloads does not leave a filled cursor on the preserved session it attaches to.
 - P19: A session that opens reads the current focus of the region, so the cursor of a terminal that holds the keyboard stays focused after its service respawns.
 - P11: The plugin declares its exposed elements as element entries: `plugin.json` declares `exposes.element`, and the view calls `expose.element`. `engines.soksak` is `^0.0.35`, the version of the core release of F502-13, and the pin of the records kit release of KR19 waits for that release. Red: the tests failed 191 of 215, most with `expose.dom is not a function`. Green: they pass.
