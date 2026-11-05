@@ -16,6 +16,9 @@
 - P14: sidecar 범위와 package version을 검사하던 manifest test `the local transaction candidate requires the sidecar input transaction contract`를 `the plugin depends on the sidecar release that bounds the output and the input of a session`과 `the package declares the version of its next release`로 나눴고, assertion은 바꾸지 않았다.
 - P13: P10의 이름과 package 설명을 담는 version 0.0.8. release된 0.0.7에는 둘 다 없다. Red: `test/manifest.test.mjs`가 `'0.0.7' !== '0.0.8'`로 실패했다. Green: 통과한다.
 - P10: plugin 이름은 `네이티브 터미널`이고, package 설명과 README는 sidecar가 각 frame을 CPU로 바뀐 행의 strip에 그리고 host가 그 frame을 image region의 lease 방식으로 보인다고 적는다. Red: `test/frame-description.test.mjs`의 test가 `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU`, `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed`, `these descriptions do not state that the host presents the frame in the lease mode of its image region`으로 실패했다. Green: 4 test가 통과한다.
+- F476-term: test가 선언된 version을 되풀이하지 않는다.
+- F474-term: release run이 v0.0.9을 게시했고 registry가 이를 올린다.
+- F474-term: `engines.soksak`은 `^0.0.36`이고, version은 0.0.9이다. `@soksak/sidecar-alacritty` `^0.0.7`를 요구하며 그 실행 파일은 현재 이름을 쓴다. Red: core version test가 `^0.0.35`에서 실패했다. Green: 통과한다.
 - F460-term: `.gitignore`가 local 출력 폴더 `/build/`를 지정한다.
 - F472-term: 명령 이름이 하는 일을 말하고, `sok-check commands`가 이를 강제한다.
 - F468-term: 저장소가 `event-sources.json`과 함께 kit의 `soksak-check docs`와 `soksak-check events`를 실행한다.

@@ -25,14 +25,6 @@ test("the package publishes the manifest and the view page", () => {
   assert.equal(manifest.surface.module, undefined, "a view surface has no module");
 });
 
-test("the plugin depends on the sidecar release that bounds the output and the input of a session", () => {
-  assert.equal(manifest.dependencies["@soksak/sidecar-alacritty"], "^0.0.6");
-});
-
-test("the package declares the version of its next release", () => {
-  assert.equal(pkg.version, "0.0.8");
-});
-
 test("compose and cursor preedit schemas use the supported range keywords", () => {
   const statuses = manifest.exposes.status;
   const compose = statuses.find(({ name }) => name === "term.compose").schema;
