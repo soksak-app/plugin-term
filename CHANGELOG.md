@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F466-term: The repository pins the kit release that reports a citation of a local build log or a temporary log.
 - F467-term: The repository pins `@soksak/kit`.
 - F463-term: The repository uses the checks kit and its one executable `soksak-check`.
 - F462-term: `engines.soksak` is `^0.0.35`, and the version is 0.0.8. Red: the core version test failed on `^0.0.34`. Green: it passes.
