@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F476-term: The tests repeat no declared version.
 - F474-term: The release run published v0.0.9, and the registry lists it.
 - F474-term: `engines.soksak` is `^0.0.36`, and the version is 0.0.9. It requires `@soksak/sidecar-alacritty` `^0.0.7`, whose executables have the current names. Red: the core version test failed on `^0.0.35`. Green: it passes.
 - F460-term: `.gitignore` names the local output folder `/build/`.

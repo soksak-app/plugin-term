@@ -2,6 +2,7 @@
 
 [한국어](features.ko.md)
 
+- [o] F476-term — P2, linked to core F476: A test does not repeat a declared version. Input: the tests held the assertions of its own declared version and ranges, so each release changed them without a change of behavior. Result: they are removed, and `make test` passes.
 - [o] F474-term — P0, linked to core F474: The plugin declares `engines.soksak` `^0.0.36`, so the core release 0.0.36 installs it, and its version is 0.0.9. It requires `@soksak/sidecar-alacritty` `^0.0.7`, whose executables have the current names. Red: `test/core-version.test.mjs` failed on `^0.0.35`. Green: it passes. Result: the release run published v0.0.9, the registry lists it, and `sok plugin install` of the published core 0.0.36 selects it.
 - [o] F460-term — P2, linked to core F460: `.gitignore` names the local output folder `/build/`. Input: the folder held local output and showed as untracked. Result: `git status` shows no untracked folder, and `make test` passes.
 - [o] F472-term — P2, linked to core F472: The names of the commands of the repository state what they do, and `make check` runs `sok-check commands`. Result: `make test` passes.
