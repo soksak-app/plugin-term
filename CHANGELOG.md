@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F463-term: The repository uses the checks kit and its one executable `soksak-check`.
 - F462-term: `engines.soksak` is `^0.0.35`, and the version is 0.0.8. Red: the core version test failed on `^0.0.34`. Green: it passes.
 - F432-term: `engines.soksak` is `^0.0.34`, and it requires `^0.0.6` of its sidecar, and the version is 0.0.7. Red: the core version test failed on `^0.0.33`. Green: it passes.
 - P9: A pointer before the first state of a session sends no input, so it shows no terminal error.
