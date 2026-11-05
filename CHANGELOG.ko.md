@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F474-term: release run이 v0.0.9을 게시했고 registry가 이를 올린다.
 - F474-term: `engines.soksak`은 `^0.0.36`이고, version은 0.0.9이다. `@soksak/sidecar-alacritty` `^0.0.7`를 요구하며 그 실행 파일은 현재 이름을 쓴다. Red: core version test가 `^0.0.35`에서 실패했다. Green: 통과한다.
 - F460-term: `.gitignore`가 local 출력 폴더 `/build/`를 지정한다.
 - F472-term: 명령 이름이 하는 일을 말하고, `sok-check commands`가 이를 강제한다.
