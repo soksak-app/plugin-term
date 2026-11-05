@@ -13,6 +13,8 @@
 - P14: sidecar 범위와 package version을 검사하던 manifest test `the local transaction candidate requires the sidecar input transaction contract`를 `the plugin depends on the sidecar release that bounds the output and the input of a session`과 `the package declares the version of its next release`로 나눴고, assertion은 바꾸지 않았다.
 - P13: P10의 이름과 package 설명을 담는 version 0.0.8. release된 0.0.7에는 둘 다 없다. Red: `test/manifest.test.mjs`가 `'0.0.7' !== '0.0.8'`로 실패했다. Green: 통과한다.
 - P10: plugin 이름은 `네이티브 터미널`이고, package 설명과 README는 sidecar가 각 frame을 CPU로 바뀐 행의 strip에 그리고 host가 그 frame을 image region의 lease 방식으로 보인다고 적는다. Red: `test/frame-description.test.mjs`의 test가 `The input was expected to not match the regular expression /gpu/i. Input: 'GPU 터미널'`, `these descriptions name the GPU`, `these descriptions do not state that the sidecar draws each frame on the CPU into the strips of the rows that changed`, `these descriptions do not state that the host presents the frame in the lease mode of its image region`으로 실패했다. Green: 4 test가 통과한다.
+- F466-term: 저장소가 local build log와 임시 log의 인용을 보고하는 kit release를 pin한다.
+- F467-term: 저장소가 `@soksak/kit`을 pin한다.
 - F463-term: 저장소가 checks kit과 실행 파일 하나 `soksak-check`를 쓴다.
 - F462-term: `engines.soksak`은 `^0.0.35`이고, version은 0.0.8이다. Red: core version test가 `^0.0.34`에서 실패했다. Green: 통과한다.
 - F432-term: `engines.soksak`은 `^0.0.34`이고, sidecar `^0.0.6`을 요구하며 version은 0.0.7이다. Red: core version test가 `^0.0.33`에서 실패했다. Green: 통과한다.
