@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P20: 열리는 session이 값과 무관하게 region의 focus를 읽으므로, reload된 view가 다시 붙는 preserved session에 filled cursor가 남지 않는다.
 - P19: 열리는 session이 region의 현재 focus를 읽으므로, 키보드를 가진 terminal의 cursor는 service가 다시 떠도 focus 상태를 유지한다.
 - P11: plugin은 노출하는 element를 element entry로 선언한다. `plugin.json`은 `exposes.element`를 선언하고, view는 `expose.element`를 호출한다. `engines.soksak`은 F502-13의 core release version인 `^0.0.35`를 요구하고, KR9의 records kit release pin은 그 release를 기다린다. Red: test가 215개 중 191개 실패했고, 대부분 `expose.dom is not a function`이었다. Green: 통과한다.
 - P17: test fake의 contract case는 `test/fixtures/contract`에 있는 publish된 `clipboard.json`과 `screen-hash.json`의 byte 사본이고, release가 싣는 `contract-copies.json`이 각 사본을 SHA-256과 함께 적는다. `scripts/test-sdk-cases.json`의 각 module은 그 사본을 나열하고, fake가 재생하지 않는 case는 이유와 함께 skip 목록에 있으며, 둘 다 아닌 case에서 build가 실패한다. Red: inline 사본에서 test가 실패했고, skip 목록이 없으면 build가 inline 사본에 없던 다섯 case를 적었다. Green: 통과한다.
