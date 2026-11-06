@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F494-term: `engines.soksak` is `^0.0.38`, and the version is 0.0.11.
 - F479-term: The release run published v0.0.10, and the registry lists it.
 - F479-term: `engines.soksak` is `^0.0.37`, and the version is 0.0.10.
 - F476-term: The tests repeat no declared version.
