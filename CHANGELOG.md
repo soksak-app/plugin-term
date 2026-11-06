@@ -5,6 +5,7 @@
 ## Unreleased
 
 - P25: The core compatibility documents state `^0.0.37`, the range that `package.json` declares.
+- P24: Input without an answer of a service that ended reaches the new session, instead of disappearing after a successful answer.
 - P23: Input that reaches a respawned service before the view hears of it flows into the session that reopens, instead of being lost with an error on the session.
 - P22: A session that opens resolves the answer `Session not open`, so `term.session` holds no such error after the service respawned.
 - P21: `term.input` and `term.paste` end with the reason when the open of the session failed or its connection failed, instead of waiting until the host ends the command after 10 s.
