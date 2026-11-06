@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P11: `engines.soksak` is `^0.0.40`, the core release of F502-13, because core 0.0.35 to 0.0.39 were released without it and refuse `exposes.element`; it is also the first core release that carries F518 and F617, which P15 and P24 read. Red: the version test failed on `^0.0.39`. Green: it passes.
 - P18: The push check and CI run the checklist history check of the kit: `package.json` pins kit 0.0.14, which holds KR14 and KR15, `make check-push` runs `sok-check docs --range` on the pushed range, and CI runs `make check-push` on the range of its event. Red: the tests of the push check failed on the Makefile and `ci.yml` before the change. Green: they pass.
 - P26: The core compatibility documents state `^0.0.39`, the range that `package.json` declares.
 - P25: The core compatibility documents state `^0.0.37`, the range that `package.json` declares.
