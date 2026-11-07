@@ -1,5 +1,7 @@
 # term plugin
 
+`term.screen.observe` is diagnostic-only: one request obtains a newly drawn renderer reference, atomically returning `requestId`, 2D semantic `rows`, `rowCount`, `columnCount`, `frame`, `cursor`, `render`, `background` and `scrollback`. It is separate from ordinary `screen.read`; unavailable, busy, closed or failed observations reject explicitly. It is a reference obtained after the measured interval, not readiness or a replacement for its earliest-content timing.
+
 [English](README.md)
 
 term plugin은 전체 화면 terminal surface다. sidecar `@soksak/sidecar-alacritty`가 각 frame을 CPU로 바뀐 행의 strip에 그리고, host가 그 frame을 image region의 lease 방식으로 보인다. Plugin 형식은 soksak core spec(`docs/spec/plugins.md`)이 정한다.
