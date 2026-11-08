@@ -8,7 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { APPS, open } from "@soksak/window-check/app.mjs";
 import { runViewMeasurements } from "@soksak/window-check/view-metrics.mjs";
-import { fresh } from "../start.mjs";
+import { freshWithoutTerm } from "../start.mjs";
 import { collectTermViewMeasurements, termViewDescriptor } from "./cases/term.mjs";
 
 for (const app of Object.values(APPS)) {
@@ -16,7 +16,7 @@ for (const app of Object.values(APPS)) {
     const s = await open(t, app);
     // The process starts of a view (host.trace.view.process-request and process-ready) are stored in the class call at debug and its
     // content frames (plugin.term.view.content_frame) in the class frame at trace.
-    await fresh(s, { performanceTrace: true, log: { call: "debug", frame: "trace" }, reads: [
+    await freshWithoutTerm(s, { performanceTrace: true, log: { call: "debug", frame: "trace" }, reads: [
       "host.trace.view.process-request",
       "host.trace.view.process-ready",
       "plugin.term.view.content_frame",
