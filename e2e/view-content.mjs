@@ -27,7 +27,7 @@ export function termContentCase(s, diagnostic) {
     return s.until(name, predicate, `${tab} did not reach ${name} readiness`, { surface: tab });
   };
   return { ready: async (_, { tab }) => {
-    await status(tab, "term.session", value => value.sessionId && value.cols > 0 && value.rows > 0);
+    await status(tab, "term.session", value => value.sessionId !== "" && value.cols > 0 && value.rows > 0);
     await s.run("term.input", { bytes: `printf '${text}\\n'\r` }, tab);
     await status(tab, "term.screen", rows => rows.map(row => row.map(cell => cell.ch ?? " ").join("")).join("\n").includes(text));
     const rect = await s.rect("term.view", undefined, tab);
