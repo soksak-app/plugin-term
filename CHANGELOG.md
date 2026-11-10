@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P33: The page sets no timer for a reply of the sidecar: the acknowledgement of `screen.watch`, the answer of `screen.read` and the answer of `pty.pending` end by that reply, by a failed send, by the `sidecar-failure` of the surface, by a connection event or by the close of the view, and a new `pty.pending` request ends the one that it replaces and drops its answer (core F718-6). Each test orders and settles by events, not by time or by a count of turns. Red: 6 of 336 tests failed. Green: they pass.
 - P32: The term page gives its input handler as `input` of `composition.create`, so every input event of the region reaches it in its dispatch and none is held; the page registers no `on("input")`. This release goes out with the core release that refuses `on("input")` (core F718-9), and it runs on every core that carries F718-7. Red: the tests with fakes that follow core failed. Green: they pass.
 - P30: The diagnostic command `term.screen.observe` is removed; `term.screen.read` and its frame identity remain.
 - P27: The core compatibility documents state that `^0.0.40` admits core 0.0.40 and every later 0.0 release, and a test requires it. Red: the test failed on the earlier statement. Green: it passes.

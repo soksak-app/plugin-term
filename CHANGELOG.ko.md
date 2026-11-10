@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P33: page는 sidecar 답을 위한 timer를 두지 않는다. `screen.watch` 확인 응답, `screen.read`의 답, `pty.pending`의 답은 그 답, 전송 실패, surface의 `sidecar-failure`, connection event, view의 닫힘으로 끝나고, 새 `pty.pending` 요청은 대신하는 요청을 끝내고 그 답을 버린다(core F718-6). 각 test는 시간이나 턴 수가 아니라 event로 순서를 정하고 기다린다. Red: 336개 중 6개가 실패했다. Green: 통과한다.
 - P32: term page 가 입력 handler 를 `composition.create` 의 `input` 으로 주므로 region 의 모든 입력 event 가 dispatch 중에 그 handler 에 닿고 어떤 event 도 붙잡히지 않는다. page 는 `on("input")` 을 등록하지 않는다. 이 release 는 `on("input")` 을 거부하는 core release(core F718-9)와 함께 나가며, F718-7 을 담은 모든 core 에서 동작한다. Red: core 를 따르는 fake 로 test 가 실패했다. Green: 통과한다.
 - P30: 진단 command `term.screen.observe`를 제거한다. `term.screen.read`와 그 frame identity는 유지된다.
 - P27: core 호환성 문서가 `^0.0.40`은 core 0.0.40부터 그 뒤의 모든 0.0 release를 허용한다고 적고, test가 이를 요구한다. Red: 이전 문장에서 test가 실패했다. Green: 통과한다.
