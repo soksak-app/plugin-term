@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P32: The term page gives its input handler as `input` of `composition.create`, so every input event of the region reaches it in its dispatch and none is held; the page registers no `on("input")`. This release goes out with the core release that refuses `on("input")` (core F718-9), and it runs on every core that carries F718-7. Red: the tests with fakes that follow core failed. Green: they pass.
 - P30: The diagnostic command `term.screen.observe` is removed; `term.screen.read` and its frame identity remain.
 - P27: The core compatibility documents state that `^0.0.40` admits core 0.0.40 and every later 0.0 release, and a test requires it. Red: the test failed on the earlier statement. Green: it passes.
 - P11: `engines.soksak` is `^0.0.40`, the core release of F502-13, because core 0.0.35 to 0.0.39 were released without it and refuse `exposes.element`; it is also the first core release that carries F518 and F617, which P15 and P24 read. Red: the version test failed on `^0.0.39`. Green: it passes.
