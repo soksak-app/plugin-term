@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P35: version은 0.0.14이고, P34를 `engines.soksak` `^0.0.41`로 release한다.
 - P34: 시험은 core의 어떤 것도 읽지 않는다. contract 사본, SDK model, 시험 build를 지웠고, page 시험은 plugin API 0.0.41의 view 시험 host에서 실행되며, plugin의 경계는 fixture가 답한다. 실패한 시작은 session을 닫고(P34-1), pagehide는 mount를 정리하며(P34-2), page는 plugin API의 clipboard를 쓴다(P34-3).
 - P34: plugin은 `package.json`이 pin한 `@soksak/plugin-api` release, 즉 core 0.0.41에 의존하고 `engines.soksak`는 `^0.0.41`이다. view 시험은 그 release의 view test host로 옮겨 간다. 호환성 문서, `test/core-version.test.mjs`, `test/workflows.test.mjs`가 그 release를 말하며, workflows 시험은 pin이 `engines.soksak`의 release를 가리키는지 확인한다. Red: pin이 없는 `package.json`에서 workflows 시험이 `package.json must pin @soksak/plugin-api to a core release file, found undefined`로 실패했고, 문서가 `^0.0.40`을 말하고 package가 `^0.0.41`을 선언할 때 호환성 문서 시험이 실패했다. Green: `test/workflows.test.mjs`와 `test/core-version.test.mjs`가 통과하고, `pnpm test`는 337개 중 337개를 통과한다. 시험의 stand-in 전환은 끝나지 않았으므로 P34는 열려 있다.
 - P12: version은 0.0.13이며, `engines.soksak` `^0.0.40`과 함께 P11를 release한다.

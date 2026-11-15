@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P35: The version is 0.0.14, which releases P34 with `engines.soksak` `^0.0.41`.
 - P34: The tests read nothing of core: the contract copies, the SDK models and the test build are removed, the page tests run on the view test host of the plugin API 0.0.41, and the boundary of the plugin is answered by fixtures. A failed start closes the session (P34-1), pagehide disposes the mount (P34-2), and the page uses the clipboard of the plugin API (P34-3).
 - P34: The plugin depends on core 0.0.41 through the `@soksak/plugin-api` release that `package.json` pins, and `engines.soksak` is `^0.0.41`; the view tests move to that release's view test host. The compatibility documents, `test/core-version.test.mjs` and `test/workflows.test.mjs` state the release, and the workflows test requires the pin to name the release of `engines.soksak`. Red: on the unchanged `package.json`, the workflows test failed with `package.json must pin @soksak/plugin-api to a core release file, found undefined`, and the compatibility document statements failed while the documents named `^0.0.40` and the package declared `^0.0.41`. Green: `test/workflows.test.mjs` and `test/core-version.test.mjs` pass, and `pnpm test` passes 337 of 337. The stand-in migration of the tests is not complete, so P34 remains open.
 - P12: The version is 0.0.13, which releases P11 with `engines.soksak` `^0.0.40`.
