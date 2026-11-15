@@ -20,7 +20,6 @@
     "events.json",
     "ui/terminal.html",
     "ui/view.js",
-    "ui/view-clipboard.js",
     "ui/view-context.js",
     "ui/view-exposes.js",
     "ui/view-diagnostics.js",

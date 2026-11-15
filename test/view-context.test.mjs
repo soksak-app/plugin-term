@@ -47,6 +47,17 @@ test("the view context uses the bridge logger instead of requesting runtime.log 
   assert.equal(context.runtime.log, logger, "the bridge logger is the view logger");
 });
 
+test("the view context uses the clipboard of the bridge runtime instead of a copy of it", { timeout: 5000 }, () => {
+  const logger = Object.fromEntries(["error", "warn", "info", "debug", "trace"].map((level) => [level, () => {}]));
+  const clipboard = { read() {}, writeText() {}, persistPNG() {} };
+  const { bridge, requests } = bridgeWith({ log: logger, error: () => Promise.resolve() });
+  bridge.runtime.clipboard = clipboard;
+  const { context } = contextFor(bridge);
+
+  assert.equal(context.runtime.clipboard, clipboard, "the page clipboard is the clipboard of the view runtime");
+  assert.deepEqual(requests, [], "the context makes no clipboard call of its own");
+});
+
 test("view error reports use runtime.error and report a rejected error route", { timeout: 5000 }, async () => {
   const errors = [];
   const logger = Object.fromEntries(["error", "warn", "info", "debug", "trace"].map((level) => [level,
