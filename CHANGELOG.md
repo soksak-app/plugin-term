@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P37: The version is 0.0.15, which releases P36.
 - P36: The view tests answer the host boundary through `test/fixtures/view-host.mjs`, a jsdom window whose `sok-view` channel answers each view call by the wire that core `docs/spec/native-surfaces.md` states (start values, view channel, view calls, sidecar routes, image region calls, host messages), instead of the view test host of `@soksak/plugin-api/testing`. No test imports that entry. The terminal and clipboard fixtures keep their exported helpers, and each test keeps its expected values. Two test inputs follow the contract: a clipboard without a PNG answers `null`, and a sidecar failure is delivered as the view's `sidecar.failure` message through `sidecarFailure`. Validation: `pnpm test` passes 309 of 309, the count before the change.
 - P35: The version is 0.0.14, which releases P34 with `engines.soksak` `^0.0.41`.
 - P34: The tests read nothing of core: the contract copies, the SDK models and the test build are removed, the page tests run on the view test host of the plugin API 0.0.41, and the boundary of the plugin is answered by fixtures. A failed start closes the session (P34-1), pagehide disposes the mount (P34-2), and the page uses the clipboard of the plugin API (P34-3).

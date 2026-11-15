@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P37: version은 0.0.15이고, P36을 release한다.
 - P36: view 시험은 `test/fixtures/view-host.mjs` 로 host 경계에 답한다. 이것은 jsdom window 이며, 그 `sok-view` channel 이 core `docs/spec/native-surfaces.md` 가 밝힌 wire(start values, view channel, view call, sidecar route, image region call, host message)대로 각 view call 에 답한다. `@soksak/plugin-api/testing` 의 view 시험 host 는 쓰지 않으며, 어떤 시험도 그 진입점을 import 하지 않는다. terminal 과 clipboard fixture 는 export 한 helper 를 유지하고, 각 시험은 기대값을 유지한다. 두 시험 입력은 계약을 따른다. PNG 가 없는 clipboard 는 `null` 을 답하고, sidecar 실패는 `sidecarFailure` 로 view 의 `sidecar.failure` message 로 전달된다. 검증: `pnpm test` 가 309 / 309 을 통과하며, 변경 전 개수와 같다.
 - P35: version은 0.0.14이고, P34를 `engines.soksak` `^0.0.41`로 release한다.
 - P34: 시험은 core의 어떤 것도 읽지 않는다. contract 사본, SDK model, 시험 build를 지웠고, page 시험은 plugin API 0.0.41의 view 시험 host에서 실행되며, plugin의 경계는 fixture가 답한다. 실패한 시작은 session을 닫고(P34-1), pagehide는 mount를 정리하며(P34-2), page는 plugin API의 clipboard를 쓴다(P34-3).
