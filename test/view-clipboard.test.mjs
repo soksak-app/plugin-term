@@ -6,11 +6,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { viewClipboard } from "../ui/view-clipboard.js";
+import { openClipboardView } from "./fixtures/clipboard-view.mjs";
 
 const DOCUMENT = "soksak://probe/ui/terminal.html";
 const ID = "0123456789abcdef0123456789abcdef";
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const PERSISTED = Object.freeze({ path: "/config/clipboard/pasted-image.png", shellQuotedPath: "'/config/clipboard/pasted-image.png'" });
+
+/** The clipboard calls of a real view in order, as [command, params]; the bridge makes its own runtime calls when it starts. */
+const clipboardCalls = (view) => view.calls.filter(({ command }) => command.startsWith("runtime.clipboard."))
+  .map(({ command, params }) => [command, params]);
 
 /** A fake view port: request(command, params) answers from answers and records the call. */
 function fakeViewPort(answers) {
@@ -66,17 +71,19 @@ test("the view clipboard downloads the bytes of the binary id of a PNG read", as
 });
 
 test("the view clipboard answers null for a clipboard without a PNG and downloads nothing", async (t) => {
-  const requests = fakeFetch(t, []);
-  const port = fakeViewPort({ "runtime.clipboard.read": () => null });
-  assert.equal(await viewClipboard(port).read("png"), null);
-  assert.deepEqual(requests, []);
+  const view = await openClipboardView(t, {
+    clipboard: { readPNG: () => ({ present: false, type: "png" }) },
+  });
+  assert.equal(await viewClipboard(view.bridge.calls).read("png"), null);
+  assert.deepEqual(clipboardCalls(view), [["runtime.clipboard.read", "png"]]);
 });
 
 test("the view clipboard returns a text read as the call answers it", async (t) => {
-  const requests = fakeFetch(t, []);
-  const port = fakeViewPort({ "runtime.clipboard.read": () => "text of the clipboard" });
-  assert.equal(await viewClipboard(port).read("text"), "text of the clipboard");
-  assert.deepEqual(requests, []);
+  const view = await openClipboardView(t, {
+    clipboard: { read: (type) => (type === "text" ? "text of the clipboard" : null) },
+  });
+  assert.equal(await viewClipboard(view.bridge.calls).read("text"), "text of the clipboard");
+  assert.deepEqual(clipboardCalls(view), [["runtime.clipboard.read", "text"]]);
 });
 
 test("the view clipboard uploads PNG bytes to the binary path and sends their id", async (t) => {
@@ -161,7 +168,7 @@ test("the view clipboard refuses a persistence answer of another form", async (t
 });
 
 test("the view clipboard refuses a persist of anything but bytes and uploads nothing", async (t) => {
-  const requests = fakeFetch(t, []);
-  await assert.rejects(viewClipboard(fakeViewPort({})).persistPNG("iVBORw=="), TypeError);
-  assert.deepEqual(requests, []);
+  const view = await openClipboardView(t);
+  await assert.rejects(viewClipboard(view.bridge.calls).persistPNG("iVBORw=="), TypeError);
+  assert.deepEqual(clipboardCalls(view), []);
 });

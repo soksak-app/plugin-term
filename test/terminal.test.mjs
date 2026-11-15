@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as terminalDiagnostics from "../ui/terminal-diagnostics.js";
 import { screenMessage } from "./screen-message.mjs";
+import { exposure, openTerminal, regionInput, sidecarSends, sidecarState } from "./fixtures/terminal-view.mjs";
 
 const terminalManifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const SCREEN_MESSAGES = JSON.parse(readFileSync(new URL("./fixtures/screen-message.json", import.meta.url), "utf8"));
@@ -1371,61 +1372,35 @@ function createFakeExpose({ followScreen = true } = {}) {
   };
 }
 
-test("modified native character keys preserve their text before and after session open", async () => {
-  const attach = createFakeAttachImage();
-  const sidecar = createFakeSidecar();
-  let region;
-  await startTerminal({
-    view: createFakeView(), detachRegions: async () => {}, attachImage: (...args) => (region = attach.function(...args)),
-    sidecar, expose: createFakeExpose(),
-    window: { TextEncoder: FakeTextEncoder },
-  });
+// The state event that opens the session of a view: 100 columns and 50 rows of 8 by 16 pixel cells.
+const OPEN_STATE = { event: "state", sessionId: "s1", cols: 100, rows: 50, cellWidth: 8, cellHeight: 16 };
+// The error of the status term.session, which the page publishes to the surface.
+const sessionError = async (view) => (await exposure(view, "status.get", { name: "term.session" })).error;
+// Delivers a compact sidecar event of the test, in its full screen form when it is a screen message.
+const emit = (view, event) => sidecarState(view, screenMessage(event));
+
+test("modified native character keys preserve their text before and after session open", { timeout: 10000 }, async (t) => {
+  const view = await openTerminal(t);
   const action = inputKey("Char", "c", { ctrl: true });
-  region._trigger("input", inputEvent([action]));
-  openSession(sidecar);
-  region._trigger("input", inputEvent([action]));
-  const inputs = () => sidecar.getMessages().filter(({ body }) => body.operation === "input");
-  await sidecar.until(() => inputs().length === 2);
+  await regionInput(view, inputEvent([action]));
+  await sidecarState(view, OPEN_STATE);
+  await regionInput(view, inputEvent([action]));
+  const inputs = () => sidecarSends(view).filter(({ body }) => carriesInput(body));
   assert.deepEqual(inputs().map(({ body }) => body.actions[0]), [action, action]);
 });
 
-test("native image errors remain visible after later session state updates", async () => {
-  const attach = createFakeAttachImage();
-  const sidecar = createFakeSidecar();
-  const expose = createFakeExpose();
-  let region;
-  await startTerminal({
-    view: createFakeView(), detachRegions: async () => {}, attachImage: (...args) => (region = attach.function(...args)), sidecar, expose,
-    window: { TextEncoder: FakeTextEncoder },
-  });
-  openSession(sidecar);
-  region._trigger("error", { reason: "size" });
-  assert.equal(expose.getStatus("term.session").readFn().error, "native image: size");
-  openSession(sidecar);
-  assert.equal(expose.getStatus("term.session").readFn().error, "native image: size");
+test("native image errors remain visible after later session state updates", { timeout: 10000 }, async (t) => {
+  const view = await openTerminal(t);
+  await sidecarState(view, OPEN_STATE);
+  await regionInput(view, { type: "error", reason: "size" });
+  assert.equal(await sessionError(view), "native image: size");
+  await sidecarState(view, OPEN_STATE);
+  assert.equal(await sessionError(view), "native image: size");
 });
 
-/** 오류 수명 검사용 터미널. 세션을 연 뒤 영역, 사이드카, 공개 항목을 반환한다. */
 // 설정이 보내는 글꼴과 커서 정책을 뺀 세션 메시지. 글꼴과 커서 메시지는 각자의 테스트가 검사한다.
 // The session requests without the font, cursor and screen read messages of the bootstrap.
 const sessionMessages = (sidecar) => sidecar.getMessages().filter(({ body }) => !["font", "cursor", "screen.read"].includes(body.operation));
-
-async function errorTerminal() {
-  const attach = createFakeAttachImage();
-  const sidecar = createFakeSidecar();
-  const expose = createFakeExpose();
-  let region;
-  await startTerminal({
-    view: createFakeView(), detachRegions: async () => {}, attachImage: (...args) => (region = attach.function(...args)), sidecar, expose,
-    window: { TextEncoder: FakeTextEncoder },
-  });
-  openSession(sidecar);
-  const error = () => expose.getStatus("term.session").readFn().error;
-  const emit = (event) => sidecar.triggerEvent("test-session", event);
-  return { region, sidecar, expose, error, emit };
-}
-
-/* 다른 출처의 오류를 해소하는 이벤트들. 어느 것도 관련 없는 오류를 지우지 않는다. */
 const UNRELATED_RESOLVERS = [
   ["state", { event: "state", sessionId: "s1", cols: 100, rows: 50, cellWidth: 8, cellHeight: 16 }],
   ["session", { event: "session", sessionId: "s1" }],
@@ -1433,24 +1408,26 @@ const UNRELATED_RESOLVERS = [
   ["screen", { event: "screen", lines: [""], cursor: { col: 0, row: 0, visible: true, focused: false, shape: "Block", blinking: false } }],
 ];
 
+// Each raise delivers one error of the view; the error is the text that term.session reports.
 const PERSISTENT_ERRORS = [
-  ["a sidecar error event", ({ emit }) => emit({ event: "error", reason: "pty failed" }), "pty failed"],
-  ["a sidecar error reply", ({ emit }) => emit({ error: "invalidParams", reason: "bad size" }), "invalidParams: bad size"],
-  ["a native image error", ({ region }) => region._trigger("error", { reason: "size" }), "native image: size"],
-  ["an invalid native key event", ({ region }) => region._trigger("input", inputEvent([
+  ["a sidecar error event", (view) => emit(view, { event: "error", reason: "pty failed" }), "pty failed"],
+  ["a sidecar error reply", (view) => emit(view, { error: "invalidParams", reason: "bad size" }), "invalidParams: bad size"],
+  ["a native image error", (view) => regionInput(view, { type: "error", reason: "size" }), "native image: size"],
+  ["an invalid native key event", (view) => regionInput(view, inputEvent([
     { type: "key", key: "Char", text: "c", shift: 1, alt: false, ctrl: false },
   ])), "terminal input failed: native input action 0 modifiers must be booleans"],
-  ["an invalid clipboard rejection", ({ emit }) => emit({ event: "clipboard.rejected", reason: "denied" }), "terminal input failed: denied"],
+  ["an invalid clipboard rejection", (view) => emit(view, { event: "clipboard.rejected", reason: "denied" }), "terminal input failed: denied"],
 ];
 
 for (const [name, raise, message] of PERSISTENT_ERRORS) {
-  test(`${name} stays in term.session until the surface closes`, async () => {
-    const terminal = await errorTerminal();
-    raise(terminal);
-    assert.equal(terminal.error(), message);
+  test(`${name} stays in term.session until the surface closes`, { timeout: 10000 }, async (t) => {
+    const view = await openTerminal(t);
+    await sidecarState(view, OPEN_STATE);
+    await raise(view);
+    assert.equal(await sessionError(view), message);
     for (const [kind, event] of UNRELATED_RESOLVERS) {
-      terminal.emit(event);
-      assert.equal(terminal.error(), message, `a ${kind} event hid ${name}`);
+      await emit(view, event);
+      assert.equal(await sessionError(view), message, `a ${kind} event hid ${name}`);
     }
   });
 }
@@ -1465,27 +1442,29 @@ const RESOLVED_ERRORS = [
 ];
 
 for (const [kind, invalid, message] of RESOLVED_ERRORS) {
-  test(`an invalid ${kind} event error is cleared only by the next valid ${kind} event`, async () => {
-    const terminal = await errorTerminal();
-    terminal.emit(invalid);
-    assert.equal(terminal.error(), message);
+  test(`an invalid ${kind} event error is cleared only by the next valid ${kind} event`, { timeout: 10000 }, async (t) => {
+    const view = await openTerminal(t);
+    await sidecarState(view, OPEN_STATE);
+    await emit(view, invalid);
+    assert.equal(await sessionError(view), message);
     for (const [other, event] of UNRELATED_RESOLVERS) {
       if (other === kind) continue;
-      terminal.emit(event);
-      assert.equal(terminal.error(), message, `a ${other} event hid the ${kind} error`);
+      await emit(view, event);
+      assert.equal(await sessionError(view), message, `a ${other} event hid the ${kind} error`);
     }
-    terminal.emit(UNRELATED_RESOLVERS.find(([name]) => name === kind)[1]);
-    assert.equal(terminal.error(), undefined, `a valid ${kind} event did not resolve its error`);
+    await emit(view, UNRELATED_RESOLVERS.find(([name]) => name === kind)[1]);
+    assert.equal(await sessionError(view), undefined, `a valid ${kind} event did not resolve its error`);
   });
 }
 
-test("resolving one error shows the most recent remaining error", async () => {
-  const terminal = await errorTerminal();
-  terminal.emit({ event: "error", reason: "pty failed" });
-  terminal.emit({ event: "theme", mode: "sepia" });
-  assert.equal(terminal.error(), "terminal input failed: invalid theme acknowledgement from sidecar");
-  terminal.emit({ event: "theme", mode: "dark" });
-  assert.equal(terminal.error(), "pty failed");
+test("resolving one error shows the most recent remaining error", { timeout: 10000 }, async (t) => {
+  const view = await openTerminal(t);
+  await sidecarState(view, OPEN_STATE);
+  await emit(view, { event: "error", reason: "pty failed" });
+  await emit(view, { event: "theme", mode: "sepia" });
+  assert.equal(await sessionError(view), "terminal input failed: invalid theme acknowledgement from sidecar");
+  await emit(view, { event: "theme", mode: "dark" });
+  assert.equal(await sessionError(view), "pty failed");
 });
 
 test("term.screen publishes sidecar output without polling or input commands", async () => {
