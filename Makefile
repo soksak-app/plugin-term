@@ -5,7 +5,7 @@
 install:
 	pnpm install --frozen-lockfile
 
-# test runs the plugin tests against the plugin API release pinned in package.json and the UI modules.
+# test runs the plugin tests; the plugin API specifiers of the UI modules resolve to the fixtures of test/fixtures/plugin-api.
 test:
 	pnpm test
 

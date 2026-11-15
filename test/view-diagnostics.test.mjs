@@ -4,6 +4,7 @@ import test from "node:test";
 import { attach } from "../ui/terminal-diagnostics.js";
 import { loadDiagnostics, startViewDocumentFrames } from "../ui/view-diagnostics.js";
 import { exposure, openTerminal } from "./fixtures/terminal-view.mjs";
+import { emitFrame, lastObservation } from "./fixtures/plugin-api/diagnostic-view-frames.mjs";
 
 // The record that the page writes for each content-frame of the document (the view frame observation).
 const FRAME_EVENT = "plugin.term.view.content_frame";
@@ -232,19 +233,14 @@ test("the mounted terminal view reads its live history and emits source content-
     && startedFrames.sourceClock.sourceNowMs <= sourceNowAfter,
   `sourceNowMs ${startedFrames.sourceClock.sourceNowMs} is outside the view-clock observation interval`);
   assert.deepEqual(await status(), { enabled: true });
-  // The observer observes the document root after the next animation frame, and it reports each size change after the frame that follows it.
-  const root = view.window.document.documentElement;
-  await nextFrame(view);
-  const observer = view.observers.find((observed) => observed.targets.includes(root));
-  assert.ok(observer, "the frame observer observes the document root");
-  observer.notify([{ target: root, contentRect: root.getBoundingClientRect() }]);
-  await nextFrame(view);
+  // The page starts the frame observation of its document, and each frame that the observation writes reaches the log of the view.
+  assert.equal(lastObservation().document, view.window.document);
+  emitFrame({ firstResizeAtMs: 1, resizeAtMs: 1, resizeCount: 1, frameTimeMs: 2 });
   assert.deepEqual(await frames("stop"), { enabled: false });
   assert.deepEqual(await status(), { enabled: false });
-  // A size change after the stop produces no record; the close of the view writes the records that were batched.
-  observer.notify([{ target: root, contentRect: root.getBoundingClientRect() }]);
-  await nextFrame(view);
+  // A frame after the stop produces no record; the close of the view writes the records that were batched.
+  emitFrame({ firstResizeAtMs: 1, resizeAtMs: 2, resizeCount: 2, frameTimeMs: 3 });
   await view.close();
   assert.equal(view.events.filter(({ event }) => event === FRAME_EVENT).length, 1,
-    "one content-frame record for the size change that the observation reported");
+    "one content-frame record for the frame that the observation wrote while it ran");
 });

@@ -82,14 +82,13 @@ test("no workflow checks out another repository", { timeout: 1000 }, () => {
   }
 });
 
-// The tests import the plugin API only through the devDependency that package.json pins to one core release (P34): the view tests
-// move to the SDK of that release, and the plugin depends on core only through that version and engines.soksak. A
-// development pin names the tarball of a core release file; a release pin names the github release download of that tarball.
-test("the tests pin the plugin API to one core release file, and the pin matches engines.soksak", { timeout: 1000 }, () => {
-  const pin = PACKAGE.devDependencies[PLUGIN_API];
-  const release = /^(?:file:\S*\/|https:\/\/github\.com\/soksak-app\/core\/releases\/download\/v\d+\.\d+\.\d+\/)soksak-plugin-api-(\d+\.\d+\.\d+)\.tgz$/.exec(pin ?? "");
-  assert.ok(release, `package.json must pin ${PLUGIN_API} to a core release file, found ${JSON.stringify(pin)}`);
-  assert.equal(PACKAGE.engines.soksak, `^${release[1]}`, "the pinned plugin API must be the version that engines.soksak names");
+// The plugin declares no dependency on the plugin API (P38): the page imports it at run time through the import map, and the tests
+// resolve it to fixtures of this repository (test/fixtures/plugin-api/register.mjs). engines.soksak is the only relation to core.
+test("package.json declares no dependency on the plugin API, and the test command loads the fixture hook", { timeout: 1000 }, () => {
+  for (const field of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
+    assert.equal(PACKAGE[field]?.[PLUGIN_API], undefined, `package.json ${field} must not name ${PLUGIN_API}`);
+  }
+  assert.match(PACKAGE.scripts.test, /^node --import \.\/test\/fixtures\/plugin-api\/register\.mjs --test test\//);
 });
 
 test("the checks come from the kit releases, and no check reads the plugin API of core", { timeout: 1000 }, () => {

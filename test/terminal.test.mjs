@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as terminalDiagnostics from "../ui/terminal-diagnostics.js";
 import { screenMessage } from "./screen-message.mjs";
+import { arrangement } from "./fixtures/plugin-api/arrange.mjs";
 import { exposure, openTerminal, regionInput, sidecarSends, sidecarState } from "./fixtures/terminal-view.mjs";
 
 const terminalManifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
@@ -1994,6 +1995,16 @@ test("term.paste rejects an absent clipboard without sending input", async () =>
   assert.deepEqual(fakeSidecar.getMessages(), []);
 });
 
+/** Arranges the shell quoting of the plugin API as a marker around each path, and returns the list of the paths that the page quotes. */
+function arrangeQuoting() {
+  const quoted = [];
+  arrangement.shellQuotePath = (path) => {
+    quoted.push(path);
+    return `Q<${path}>`;
+  };
+  return quoted;
+}
+
 test("term.paste quotes file URLs without adding an executable newline", async () => {
   FakeResizeObserver.reset();
   const fakeSidecar = createFakeSidecar();
@@ -2015,11 +2026,15 @@ test("term.paste quotes file URLs without adding an executable newline", async (
   openSession(fakeSidecar);
   fakeSidecar.reset();
 
+  // The quoting is the plugin API's shellQuotePath, so the test arranges its answer and judges the calls and the paste of the page.
+  const quoted = arrangeQuoting();
   await fakeExpose.getCommand("term.paste")();
+  arrangement.shellQuotePath = null;
 
   assert.deepEqual(clipboardCalls, ["text", "fileURLs"]);
+  assert.deepEqual(quoted, ["/tmp/a b.txt", "/tmp/quote'name.txt"]);
   assert.deepEqual(fakeSidecar.getMessages().map(({ body }) => body), [
-    { operation: "paste", text: "'/tmp/a b.txt' '/tmp/quote'\\''name.txt'" },
+    { operation: "paste", text: "Q</tmp/a b.txt> Q</tmp/quote'name.txt>" },
   ]);
 });
 
@@ -2089,10 +2104,13 @@ test("terminal file drop quotes local URLs and sends one non-executing paste", a
   openSession(fakeSidecar);
   fakeSidecar.reset();
 
+  const quoted = arrangeQuoting();
   await fakeExpose.getCommand("term.drop")({ urls: ["file:///tmp/dropped%20file.txt", "file:///tmp/quote%27name.txt"] });
+  arrangement.shellQuotePath = null;
 
+  assert.deepEqual(quoted, ["/tmp/dropped file.txt", "/tmp/quote'name.txt"]);
   assert.deepEqual(fakeSidecar.getMessages().map(({ body }) => body), [
-    { operation: "paste", text: "'/tmp/dropped file.txt' '/tmp/quote'\\''name.txt'" },
+    { operation: "paste", text: "Q</tmp/dropped file.txt> Q</tmp/quote'name.txt>" },
   ]);
 });
 
@@ -6727,7 +6745,7 @@ async function startScreenTerminal(lines) {
   return sidecar;
 }
 
-test("a screen message is stored as the frame event with the hash of the golden vector", async () => {
+test("a screen message is stored as the frame event with the hash of its screen", async () => {
   const lines = [];
   const sidecar = await startScreenTerminal(lines);
   const vector = SCREEN_MESSAGE;
@@ -6975,7 +6993,8 @@ test("a refused change reports its error, reads the screen and refuses the chang
   sidecar.triggerRaw("test-session", applyCaseMessage("screen.apply.refuses-unfollowed-change"));
   const errors = lines.filter(([name]) => name === "error").map(([, fields]) => fields.message);
   assert.equal(errors.length, 1, JSON.stringify(errors));
-  assert.match(errors[0], /a change of previous 3 does not follow number 1/);
+  // The text of the refusal is the screen-message rule of core (docs/spec/persistent-services.md#screen-message); the page reports that it refused.
+  assert.match(errors[0], /^terminal input failed: /);
   assert.equal(screenReads(sidecar), 2, "the refusal reads the screen again");
   sidecar.triggerRaw("test-session", applyCaseMessage("screen.apply.change-one-row"));
   assert.deepEqual(screenText(expose), ["ab", "cd"], "a change before the full form leaves the screen");
@@ -7042,9 +7061,11 @@ test("a screen event without a sequence is the error of the source screen", asyn
   const invalid = { ...SCREEN_MESSAGE.message };
   delete invalid.sequence;
   sidecar.triggerEvent("test-session", invalid);
-  assert.deepEqual(lines.filter(([name]) => name === "error").map(([, fields]) => fields), [
-    { source: "screen", message: "terminal input failed: screen message: sequence must be an integer from 1, found undefined" },
-  ]);
+  // The text of the refusal is the screen-message rule of core (docs/spec/persistent-services.md#screen-message), so the test keeps the
+  // source and the count of the record and the prefix that the page writes.
+  const errors = lines.filter(([name]) => name === "error").map(([, fields]) => fields);
+  assert.deepEqual(errors.map(({ source }) => source), ["screen"]);
+  assert.match(errors[0].message, /^terminal input failed: /);
   assert.equal(lines.filter(([name]) => name === "frame").length, 0);
 });
 

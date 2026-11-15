@@ -4,7 +4,7 @@ import test from "node:test";
 
 const vectors = JSON.parse(readFileSync(new URL("./fixtures/screen-message.json", import.meta.url), "utf8"));
 
-test("the terminal owns one screen vector", () => {
+test("the terminal owns one screen message fixture", () => {
   assert.deepEqual(Object.keys(vectors), ["vectors"]);
   assert.equal(vectors.vectors.length, 1);
   const vector = vectors.vectors[0];

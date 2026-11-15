@@ -1,9 +1,9 @@
 // The fixtures of the terminal view. The page module is the real ui/view.js, which the test loads into the view window with view.load(PAGE).
-// The view window and the sok-view boundary are the view host of test/fixtures/view-host.mjs: it answers each call of the page by the
-// wire contract, and it answers the sidecar of the terminal, the image region and the surface composition, which are the host side of
-// the view. The declarations and the composition come from the plugin manifest, and the diagnostic declaration from diagnostics.json.
+// The view window is test/fixtures/view-window.mjs: the page reaches the plugin API through the bridge of @soksak/plugin-api/view, and the
+// window answers each call of the page as the test arranges it (the sidecar of the terminal, the image region and the surface composition).
+// The declarations and the composition come from the plugin manifest, and the diagnostic declaration from diagnostics.json.
 import { readFileSync } from "node:fs";
-import { openViewWindow } from "./view-host.mjs";
+import { openViewWindow } from "./view-window.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../../plugin.json", import.meta.url), "utf8"));
 const diagnostics = JSON.parse(readFileSync(new URL("../../diagnostics.json", import.meta.url), "utf8"));

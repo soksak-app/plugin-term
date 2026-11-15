@@ -8,9 +8,10 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const script = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts.test;
-const nodeTest = script.split("&&").map((part) => part.trim()).find((part) => part.startsWith("node --test "));
+// The command runs node with the flags of the plugin API fixtures (--import) and the test runner (--test); the patterns follow --test.
+const nodeTest = script.split("&&").map((part) => part.trim()).find((part) => part.startsWith("node ") && part.includes(" --test "));
 assert.ok(nodeTest, "the test script runs no node --test command");
-const patterns = nodeTest.slice("node --test ".length).trim().split(/\s+/).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
+const patterns = nodeTest.slice(nodeTest.indexOf(" --test ") + " --test ".length).trim().split(/\s+/).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
 
 // Each test file under test/, as a path relative to the repository root with forward slashes.
 function testFiles(directory) {

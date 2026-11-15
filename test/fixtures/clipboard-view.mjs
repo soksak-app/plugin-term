@@ -1,9 +1,8 @@
-// The view of the clipboard and sidecar tests. The view window and the sok-view boundary are the view host of test/fixtures/view-host.mjs,
-// which answers the clipboard routes and the sidecar of the terminal, the only dependency of plugin.json. The bridge of the view is the
-// bridge that the page of the view builds over the same channel (view.bridge), so the module under test receives the calls and
-// subscriptions of the view as the page does.
+// The view of the clipboard and sidecar tests. The view window is test/fixtures/view-window.mjs, and the bridge of the view is the bridge
+// of @soksak/plugin-api/view over the channel of that window, so the module under test receives the calls and subscriptions of the view as
+// the page does.
 import { readFileSync } from "node:fs";
-import { openViewWindow } from "./view-host.mjs";
+import { openViewWindow } from "./view-window.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../../plugin.json", import.meta.url), "utf8"));
 
