@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P34: plugin은 `package.json`이 pin한 `@soksak/plugin-api` release, 즉 core 0.0.41에 의존하고 `engines.soksak`는 `^0.0.41`이다. view 시험은 그 release의 view test host로 옮겨 간다. 호환성 문서, `test/core-version.test.mjs`, `test/workflows.test.mjs`가 그 release를 말하며, workflows 시험은 pin이 `engines.soksak`의 release를 가리키는지 확인한다. Red: pin이 없는 `package.json`에서 workflows 시험이 `package.json must pin @soksak/plugin-api to a core release file, found undefined`로 실패했고, 문서가 `^0.0.40`을 말하고 package가 `^0.0.41`을 선언할 때 호환성 문서 시험이 실패했다. Green: `test/workflows.test.mjs`와 `test/core-version.test.mjs`가 통과하고, `pnpm test`는 337개 중 337개를 통과한다. 시험의 stand-in 전환은 끝나지 않았으므로 P34는 열려 있다.
 - P12: version은 0.0.13이며, `engines.soksak` `^0.0.40`과 함께 P11를 release한다.
 - P33: page는 sidecar 답을 위한 timer를 두지 않는다. `screen.watch` 확인 응답, `screen.read`의 답, `pty.pending`의 답은 그 답, 전송 실패, surface의 `sidecar-failure`, connection event, view의 닫힘으로 끝나고, 새 `pty.pending` 요청은 대신하는 요청을 끝내고 그 답을 버린다(core F718-6). 각 test는 시간이나 턴 수가 아니라 event로 순서를 정하고 기다린다. Red: 336개 중 6개가 실패했다. Green: 통과한다.
 - P32: term page 가 입력 handler 를 `composition.create` 의 `input` 으로 주므로 region 의 모든 입력 event 가 dispatch 중에 그 handler 에 닿고 어떤 event 도 붙잡히지 않는다. page 는 `on("input")` 을 등록하지 않는다. 이 release 는 `on("input")` 을 거부하는 core release(core F718-9)와 함께 나가며, F718-7 을 담은 모든 core 에서 동작한다. Red: core 를 따르는 fake 로 test 가 실패했다. Green: 통과한다.

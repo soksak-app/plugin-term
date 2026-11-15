@@ -16,8 +16,10 @@ test("the core compatibility documents state the engines.soksak that the package
 // Core 0.0.39 and earlier accept only the exposes kinds status, commands and dom, so they refuse the exposes.element of
 // plugin.json; 0.0.40 is the core release of F502-13 (F502-13-1), the next version that no core tag holds (P11). The same release is the first that carries core F518 and core F617, which the view clipboard and
 // the held input read.
-test("the package requires core 0.0.40, the first core release that accepts exposes.element (P11)", { timeout: 1000 }, () => {
-  assert.equal(pkg.engines.soksak, "^0.0.40");
+// The plugin API devDependency pins core 0.0.41, whose view test host and view record surface the view tests move to (P34), so the
+// package requires that release.
+test("the package requires core 0.0.41, the release that the plugin API devDependency pins (P34)", { timeout: 1000 }, () => {
+  assert.equal(pkg.engines.soksak, "^0.0.41");
 });
 
 // A range ^0.0.z admits core 0.0.z and every later 0.0 release (core docs/spec/installation.md#versions-and-ranges), so the
