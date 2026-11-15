@@ -1,4 +1,4 @@
-// The clipboard reads of the terminal view page over the view of openView (@soksak/plugin-api/testing). The page clipboard is the
+// The clipboard reads of the terminal view page over the view of the view host fixture. The page clipboard is the
 // clipboard of the view runtime (ui/view-context.js), so the reads run through the calls of the bridge: a text read and a read of a
 // clipboard without a PNG. The PNG upload and download and the reply validation belong to the plugin API (core
 // docs/spec/plugin-processes.md#binary-path), and its tests own them.
@@ -12,7 +12,7 @@ const clipboardCalls = (view) => view.calls.filter(({ command }) => command.star
 
 test("the view clipboard answers null for a clipboard without a PNG", async (t) => {
   const view = await openClipboardView(t, {
-    clipboard: { readPNG: () => ({ present: false, type: "png" }) },
+    clipboard: { readPNG: () => null },
   });
   assert.equal(await view.bridge.runtime.clipboard.read("png"), null);
   assert.deepEqual(clipboardCalls(view), [["runtime.clipboard.read", "png"]]);

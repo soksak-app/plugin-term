@@ -25,7 +25,7 @@ test("the sidecar subscriptions of a session name the declared sidecar", async (
   // The host routes a message and a failure of a session only when the view subscribed to that session under the declared sidecar.
   view.sidecarMessage(SIDECAR, SURFACE, { body: { event: "probe" } });
   await view.settled();
-  view.push("sidecar-failure", { sidecar: SIDECAR, surface: "probe-surface", reason: "probe failure" });
+  view.sidecarFailure(SIDECAR, "probe-surface", "probe failure");
   await view.settled();
   assert.deepEqual(messages, [{ event: "probe" }]);
   assert.deepEqual(failures, ["probe failure"]);

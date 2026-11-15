@@ -1,9 +1,9 @@
-// The fixtures of the terminal view opened with openView (@soksak/plugin-api/testing). The page module is the real ui/view.js, which the
-// test loads with view.load(PAGE). Only what leaves the plugin is answered here: the sidecar of the terminal, the image region and the
-// surface composition of the host, and the calls of the page that the host records. The declarations and the composition come from
-// the plugin manifest, and the diagnostic declaration from diagnostics.json.
+// The fixtures of the terminal view. The page module is the real ui/view.js, which the test loads into the view window with view.load(PAGE).
+// The view window and the sok-view boundary are the view host of test/fixtures/view-host.mjs: it answers each call of the page by the
+// wire contract, and it answers the sidecar of the terminal, the image region and the surface composition, which are the host side of
+// the view. The declarations and the composition come from the plugin manifest, and the diagnostic declaration from diagnostics.json.
 import { readFileSync } from "node:fs";
-import { openView } from "@soksak/plugin-api/testing";
+import { openViewWindow } from "./view-host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../../plugin.json", import.meta.url), "utf8"));
 const diagnostics = JSON.parse(readFileSync(new URL("../../diagnostics.json", import.meta.url), "utf8"));
@@ -35,54 +35,36 @@ const settingsValues = () => ({
 const THEME = { scheme: "dark", tokens: { "--card": "#ffffff", "--fg": "#252735", "--edge": "#d8dbe4", "--rail": "#5962e8" } };
 
 /**
- * Opens the terminal view and loads its page. Options: diagnostic (whether the build is a diagnostic build), sidecar (the function that
- * answers each body the view sends to the sidecar), image (the fixtures of the image region: attach, focus, caret, text, detach), native
- * (the host answers of runtime.native.call beyond the bridge entries), faults (route names that reject), declarations (the exposure
- * declarations of the plugin, which the host checks each registration and binding against), and layout.
+ * Opens the terminal view and loads its page. Options: diagnostic (whether the build is a diagnostic build), declarations (the exposure
+ * declarations of the plugin, which the host checks each registration and binding against), sidecar (the function that answers each
+ * body the view sends to the sidecar: its return value is the result, a throw is the error), image (the fixtures of the image region:
+ * attach, focus, caret, text, detach), native (the host answers of runtime.native.call beyond the registrations), and faults (route names
+ * that reject; an image call routes as composition.<call>). The view is closed when the test ends.
  */
-export async function openTerminal(t, { diagnostic = true, declarations = diagnostic ? DIAGNOSTIC_DECLARATIONS : DECLARATIONS, sidecar = () => null, image = {}, native = {}, faults, layout = {} } = {}) {
-  const view = await openView("term", {
-    host: {
-      surface: SURFACE,
-      declarations,
-      settings: settingsValues(),
-      textSize: 1,
-      logLevels: LOG_LEVELS,
-      faults,
-      sidecars: [SIDECAR],
-      sidecar: { [SIDECAR]: sidecar },
-      native: { registered: () => null, changed: () => null, exposureReply: () => null, ...native },
-      composition: {
-        declaration: () => manifest.surface.composition,
-        place: () => null,
-        report: () => null,
-        image: { attach: () => null, focus: () => null, caret: () => null, text: () => null, detach: () => null, ...image },
-      },
-    },
-    start: { surface: SURFACE, params: null, origin: { directory: null }, project: null, diagnostics: diagnostic ? DIAGNOSTIC_START : null },
+export async function openTerminal(t, { diagnostic = true, declarations = diagnostic ? DIAGNOSTIC_DECLARATIONS : DECLARATIONS, sidecar = () => null, image = {}, native = {}, faults } = {}) {
+  const start = { surface: SURFACE, params: null, origin: { directory: null }, project: null, declarations, diagnostics: diagnostic ? DIAGNOSTIC_START : null };
+  const view = openViewWindow({
+    plugin: manifest.id,
+    surface: SURFACE,
+    start,
+    theme: THEME,
     declarations,
-    layout,
+    sidecars: [SIDECAR],
+    composition: manifest.surface.composition,
+    sidecar,
+    image: { attach: () => null, focus: () => null, caret: () => null, text: () => null, detach: () => null, ...image },
+    native,
+    faults,
+    settings: settingsValues(),
+    textSize: 1,
+    levels: LOG_LEVELS,
   });
-  view.window.sokTheme = THEME;
+  t.after(() => view.close());
   await view.load(PAGE);
   // The host sends the theme of the window as a message after the page starts, and the page passes it to its listeners.
-  hostMessage(view, { event: "theme", data: THEME });
-  await settleAll(view);
-  // The view ends once: the test ends it when the test ends, unless the test ended it before.
-  const close = view.close;
-  let ended = false;
-  view.close = async () => {
-    if (ended) return;
-    ended = true;
-    await close();
-  };
-  t.after(() => view.close());
+  view.push("theme", THEME);
+  await view.settled();
   return view;
-}
-
-/** Posts a message of the host to the window of the view, as the host posts the events and replies of the view. */
-function hostMessage(view, message) {
-  view.window.dispatchEvent(new view.window.MessageEvent("message", { data: { sok: 1, ...message }, source: view.window }));
 }
 
 /** The names of the commands that the page registered through runtime.command.register, in order (the core entries left out). */
@@ -98,20 +80,11 @@ export function terminalElement(view) {
 // The request ids of the exposure relay of the test, which are unique in the process.
 let exposureRequests = 0;
 
-/** Waits until the view has no more work: each reply and follow-up call of the page is sent. */
-async function settleAll(view) {
-  let sent = -1;
-  while (sent !== view.sent.length) {
-    sent = view.sent.length;
-    await view.settled();
-  }
-}
-
 /** Sends an exposure request of the method with params to the view, and resolves with the result the page answered (or rejects with its error). */
 export async function exposure(view, method, params) {
   const id = ++exposureRequests;
-  await view.push("exposure-request", { id, surface: SURFACE, method, params });
-  await settleAll(view);
+  view.push("exposure-request", { id, surface: SURFACE, method, params });
+  await view.settled();
   const answer = view.calls.find((call) => call.command === "runtime.native.call" && call.params.name === "exposureReply" && call.params.payload.id === id);
   if (answer === undefined) throw new Error(`the page did not answer the exposure request ${method}`);
   const { error, result } = answer.params.payload;
@@ -128,11 +101,11 @@ export const sidecarSends = (view) => view.observed.sidecar.map(({ id, body, cid
 /** Delivers a sidecar message of the session of the surface to the view, and waits until the page has handled it. */
 export async function sidecarState(view, body) {
   view.sidecarMessage(SIDECAR, SURFACE, { body });
-  await settleAll(view);
+  await view.settled();
 }
 
 /** Delivers a region input event to the view, as the host delivers the input of the image region. */
 export async function regionInput(view, event) {
-  await view.push("image-event", { name: "view", event });
-  await settleAll(view);
+  view.push("image-event", { name: "view", event });
+  await view.settled();
 }
