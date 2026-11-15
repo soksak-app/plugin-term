@@ -7,12 +7,73 @@ import { screenMessage } from "./screen-message.mjs";
 const terminalManifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const SCREEN_MESSAGES = JSON.parse(readFileSync(new URL("./fixtures/screen-message.json", import.meta.url), "utf8"));
 const SCREEN_MESSAGE = SCREEN_MESSAGES.vectors[0];
-// The cases of the copies that the test table lists for the screen hash module, read from test/fixtures/contract.
-const SCREEN_HASH_CASES = JSON.parse(readFileSync(new URL("../scripts/test-sdk-cases.json", import.meta.url), "utf8"))
-  .modules.find(({ specifier }) => specifier === "@soksak/plugin-api/screen-hash").cases
-  .flatMap((name) => JSON.parse(readFileSync(new URL(`./fixtures/contract/${name}`, import.meta.url), "utf8")).cases);
-const SCREEN_FRAME_PREEDIT = structuredClone(SCREEN_HASH_CASES
-  .find(({ id }) => id === "screen.message.frame-preedit").steps[0].apply.message);
+// The input screen of the screen hash case screen.message.frame-preedit, as the sidecar sends it.
+const SCREEN_FRAME_PREEDIT_MESSAGE = {
+  sequence: 1,
+  segment: "b1",
+  number: 1,
+  base: true,
+  event: "screen",
+  frame: {
+    generation: 3,
+    raster: 7,
+    sequence: 12
+  },
+  rows: 1,
+  cols: 4,
+  cursor: {
+    visible: false,
+    row: 0,
+    col: 0,
+    focused: false,
+    shape: "Block",
+    blinking: false,
+    preedit: {
+      text: "한",
+      markedRange: {
+        location: 0,
+        length: 1
+      },
+      selectedRange: {
+        location: 1,
+        length: 0
+      },
+      replacementRange: null,
+      attributed: false
+    }
+  },
+  cells: [
+    {
+      grapheme: "g",
+      width: 1,
+      fg: null,
+      bg: null,
+      attributes: 0
+    },
+    {
+      grapheme: "o",
+      width: 1,
+      fg: null,
+      bg: null,
+      attributes: 0
+    },
+    {
+      grapheme: "o",
+      width: 1,
+      fg: null,
+      bg: null,
+      attributes: 0
+    },
+    {
+      grapheme: "d",
+      width: 1,
+      fg: null,
+      bg: null,
+      attributes: 0
+    }
+  ]
+};
+const SCREEN_FRAME_PREEDIT = structuredClone(SCREEN_FRAME_PREEDIT_MESSAGE);
 SCREEN_FRAME_PREEDIT.cursor = { ...SCREEN_FRAME_PREEDIT.cursor,
   caret: { row: SCREEN_FRAME_PREEDIT.cursor.row, col: SCREEN_FRAME_PREEDIT.cursor.col } };
 const SCREEN_RENDER = (frame = SCREEN_FRAME_PREEDIT.frame) => ({
@@ -28,24 +89,915 @@ const SCREEN_RENDER = (frame = SCREEN_FRAME_PREEDIT.frame) => ({
   glyphs: [{ row: 0, col: 0, width: 1, fontRuns: 1, grapheme: "g", foreground: "#000000",
     background: "#ffffff", bounds: { x: 0, y: 1, width: 4, height: 8 }, underline: { rect: null } }],
 });
-const SCREEN_CARET_MESSAGE = SCREEN_HASH_CASES.find(({ id }) => id === "screen.message.frame-preedit").steps[0].apply.message;
-const P74_SCREEN_MESSAGE_IDS = [
-  "screen.message.letter-x-cursor-hidden",
-  "screen.message.scrollback-offset-3",
-  "screen.message.scrollback-offset-25",
-  "screen.message.blank-hidden-cursor",
-  "screen.message.scrollback-background-offset-25",
-  "screen.message.scrollback-offset-zero-hidden-cursor",
-  "screen.message.attribute-flags",
-  "screen.message.wide-cell-continuation",
-  "screen.message.multiline-rows",
-  "screen.message.frame-screen-read",
-  "screen.message.null-frame-screen-read",
-  "screen.message.caret-8x4",
-  "screen.message.blank-underlined-cursor",
-  "screen.message.hollow-block-cursor",
-  "screen.message.linked-word",
-];
+const SCREEN_CARET_MESSAGE = structuredClone(SCREEN_FRAME_PREEDIT_MESSAGE);
+// Input screens of the screen hash cases that the P74 public message test replays, keyed by case id.
+const P74_SCREEN_MESSAGES = {
+  "screen.message.letter-x-cursor-hidden": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "x",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.scrollback-offset-3": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cursor: {
+      col: 0,
+      row: 0,
+      visible: false,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    scrollback: {
+      offset: 3,
+      history: 40
+    },
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.scrollback-offset-25": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cursor: {
+      col: 0,
+      row: 0,
+      visible: false,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    scrollback: {
+      offset: 25,
+      history: 50
+    },
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.blank-hidden-cursor": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.scrollback-background-offset-25": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    background: "#102030",
+    cursor: {
+      col: 0,
+      row: 0,
+      visible: false,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    scrollback: {
+      offset: 25,
+      history: 50
+    },
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.scrollback-offset-zero-hidden-cursor": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cursor: {
+      col: 0,
+      row: 0,
+      visible: false,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    scrollback: {
+      offset: 0,
+      history: 50
+    },
+    frame: null,
+    rows: 1,
+    cols: 1,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.attribute-flags": {
+    event: "screen",
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    rows: 1,
+    cols: 3,
+    cursor: {
+      row: 0,
+      col: 0,
+      visible: true
+    },
+    cells: [
+      {
+        grapheme: "Z",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 45
+      },
+      {
+        grapheme: "Y",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 210
+      },
+      {
+        grapheme: "N",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ],
+    frame: null
+  },
+  "screen.message.wide-cell-continuation": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 1,
+    cols: 6,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "A",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "B",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "한",
+        width: 2,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 0,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.multiline-rows": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 3,
+    cols: 5,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "l",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "i",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "n",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "e",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "1",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "l",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "i",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "n",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "e",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "2",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "l",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "i",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "n",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "e",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "3",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.frame-screen-read": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: {
+      generation: 3,
+      raster: 7,
+      sequence: 12
+    },
+    rows: 1,
+    cols: 5,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "l",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "i",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "n",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "e",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "1",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.null-frame-screen-read": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 1,
+    cols: 5,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "l",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "i",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "n",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "e",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "1",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.caret-8x4": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cols: 8,
+    rows: 4,
+    cursor: {
+      col: 7,
+      row: 3,
+      shape: "Block",
+      visible: true,
+      blinking: false,
+      blink_visible: true,
+      focused: true,
+      preedit: null
+    },
+    frame: null,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.blank-underlined-cursor": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cursor: {
+      col: 1,
+      row: 0,
+      visible: true,
+      focused: true,
+      shape: "Underline",
+      blinking: true
+    },
+    frame: null,
+    rows: 1,
+    cols: 2,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.hollow-block-cursor": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    cursor: {
+      col: 1,
+      row: 0,
+      visible: true,
+      focused: false,
+      shape: "HollowBlock",
+      blinking: false
+    },
+    frame: null,
+    rows: 1,
+    cols: 2,
+    cells: [
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.message.linked-word": {
+    sequence: 1,
+    segment: "b1",
+    number: 1,
+    base: true,
+    event: "screen",
+    frame: null,
+    rows: 1,
+    cols: 7,
+    cursor: {
+      visible: false,
+      row: 0,
+      col: 0,
+      focused: false,
+      shape: "Block",
+      blinking: false
+    },
+    cells: [
+      {
+        grapheme: "a",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: " ",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "L",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0,
+        link: "https://example.test/doc"
+      },
+      {
+        grapheme: "I",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0,
+        link: "https://example.test/doc"
+      },
+      {
+        grapheme: "N",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0,
+        link: "https://example.test/doc"
+      },
+      {
+        grapheme: "K",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0,
+        link: "https://example.test/doc"
+      },
+      {
+        grapheme: " ",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+};
 
 const { startTerminal: realStartTerminal } = await import("../build/test/ui/terminal.js?terminal-test");
 
@@ -5866,10 +6818,9 @@ test("valid copied screen messages do not leave a screen hash error in term.sess
     window: { TextEncoder: FakeTextEncoder }, runtime: { log: recorder(lines) },
   });
   openSession(sidecar);
-  for (const id of P74_SCREEN_MESSAGE_IDS) {
-    const testCase = SCREEN_HASH_CASES.find(({ id: candidate }) => candidate === id);
-    assert.ok(testCase, `missing copied public message case ${id}`);
-    const source = testCase.steps[0].apply.message;
+  for (const id of Object.keys(P74_SCREEN_MESSAGES)) {
+    const source = P74_SCREEN_MESSAGES[id];
+    assert.ok(source, `missing screen message vector ${id}`);
     const message = { ...source, cursor: { ...source.cursor, caret: null }, render: null };
     sidecar.triggerRaw("test-session", message);
   }
@@ -5880,11 +6831,133 @@ test("valid copied screen messages do not leave a screen hash error in term.sess
 });
 
 // The message of a published apply case as the sidecar sends it to a surface without an image.
+// Input screens of the screen apply cases, keyed by case id.
+const APPLY_SCREEN_MESSAGES = {
+  "screen.apply.full-two-rows": {
+    event: "screen",
+    sequence: 2,
+    segment: "b1",
+    number: 1,
+    base: true,
+    rows: 2,
+    cols: 2,
+    cursor: {
+      row: 0,
+      col: 0,
+      visible: true
+    },
+    frame: null,
+    cells: [
+      {
+        grapheme: "a",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "b",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "c",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      },
+      {
+        grapheme: "d",
+        width: 1,
+        fg: null,
+        bg: null,
+        attributes: 0
+      }
+    ]
+  },
+  "screen.apply.change-one-row": {
+    event: "screen",
+    sequence: 2,
+    segment: "b1",
+    number: 2,
+    base: false,
+    previous: 1,
+    rows: 2,
+    cols: 2,
+    cursor: {
+      row: 1,
+      col: 1,
+      visible: true
+    },
+    frame: null,
+    changed: [
+      {
+        row: 1,
+        cells: [
+          {
+            grapheme: "x",
+            width: 1,
+            fg: null,
+            bg: null,
+            attributes: 0
+          },
+          {
+            grapheme: "y",
+            width: 1,
+            fg: null,
+            bg: null,
+            attributes: 0
+          }
+        ]
+      }
+    ]
+  },
+  "screen.apply.refuses-unfollowed-change": {
+    event: "screen",
+    sequence: 2,
+    segment: "b1",
+    number: 2,
+    base: false,
+    previous: 3,
+    rows: 2,
+    cols: 2,
+    cursor: {
+      row: 1,
+      col: 1,
+      visible: true
+    },
+    frame: null,
+    changed: [
+      {
+        row: 1,
+        cells: [
+          {
+            grapheme: "x",
+            width: 1,
+            fg: null,
+            bg: null,
+            attributes: 0
+          },
+          {
+            grapheme: "y",
+            width: 1,
+            fg: null,
+            bg: null,
+            attributes: 0
+          }
+        ]
+      }
+    ]
+  },
+};
 const applyCaseMessage = (id) => {
-  const { message } = SCREEN_HASH_CASES.find(({ id: candidate }) => candidate === id).steps[0].apply;
+  const message = APPLY_SCREEN_MESSAGES[id];
+  if (!message) throw new Error(`missing screen apply vector ${id}`);
   return { ...message, cursor: { ...message.cursor, caret: null }, render: null };
 };
-const caseHash = (id) => SCREEN_HASH_CASES.find(({ id: candidate }) => candidate === id).steps[0].output.hash;
 const screenText = (expose) => expose.heldScreen().map((row) => row.map((cell) => cell.ch ?? " ").join(""));
 const screenReads = (sidecar) => sidecar.getMessages().filter(({ body }) => body.operation === "screen.read").length;
 
@@ -5909,7 +6982,7 @@ test("a change form replaces the rows that it carries in the screen that the vie
   await framesStored(lines, 2);
   assert.deepEqual(screenText(expose), ["ab", "xy"]);
   assert.deepEqual(lines.filter(([name]) => name === "frame").map(([, fields]) => fields.hash),
-    [caseHash("screen.hash.two-rows.sha256"), caseHash("screen.hash.two-rows-changed.sha256")]);
+    ["f7a3d4c9b83a851223d1ec63dad4640d28cc144f4f0db9bee2535502143b271c", "eff5bc86c51afcb702454d0c5cd4795bde946f584a21105745cb35bc20e53138"]);
   assert.deepEqual(lines.filter(([name]) => name === "error"), []);
 });
 
