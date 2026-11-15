@@ -2116,62 +2116,6 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
 
   await rerunBootstrap();
 
-  let themeReady = Promise.resolve();
-  let themeSubscription = null;
-  if (typeof theme === "function") {
-    let first = true;
-    themeSubscription = theme((value) => {
-      if (!value || (value.scheme !== "dark" && value.scheme !== "light")) {
-        const error = new Error("theme callback must provide scheme dark or light");
-        reportInputError(error);
-        if (first) { first = false; return Promise.reject(error); }
-        return Promise.resolve();
-      }
-      // 마지막 테마를 기록한다 — 연결이 다시 맺히면 그 값으로 다시 보낸다(V5-106).
-      lastTheme = value;
-      const request = setTheme(value.scheme, value.tokens);
-      if (first) {
-        first = false;
-        return request.then(undefined, (error) => { reportInputError(error); throw error; });
-      }
-      return request.catch(reportInputError);
-    });
-    // default: 구독 결과에 ready 약속이 없으면 구독 결과 자체가 첫 테마 적용의 완료다.
-    themeReady = Promise.resolve(themeSubscription?.ready ?? themeSubscription).catch((error) => {
-      reportInputError(error);
-      throw error;
-    });
-  }
-  await themeReady;
-
-  let settingsSubscription = null;
-  if (settings) {
-    applyScrollbarSettings(settings.read());
-    applyPaddingSettings(settings.read());
-    settingsSubscription = settings.on((values) => {
-      applyScrollbarSettings(values);
-      applyPaddingSettings(values);
-      applyTitle();
-      const nextClipboardPolicy = values["clipboard.program"];
-      if (!PROGRAM_CLIPBOARD_POLICIES.has(nextClipboardPolicy)) {
-        reportInputError(new Error(`clipboard.program setting is invalid: ${String(nextClipboardPolicy)}`));
-        return;
-      }
-      programClipboardPolicy = nextClipboardPolicy;
-      const policy = {
-        shape: values["cursor.shape"],
-        blink: values["cursor.blink"],
-        interval: values["cursor.interval"],
-        idleTimeout: values["cursor.idleTimeout"],
-        unfocused: values["cursor.unfocused"],
-      };
-      setCursorPolicy(policy).catch(reportInputError);
-      setFont(values["font.family"]).catch(reportInputError);
-    });
-  }
-
-  const textSizeSubscription = textSize.on((factor) => setTextSize(factor).catch(reportInputError));
-
   // 사이드카는 세션을 끝낼 때 전송 그림을 놓는다. 영역을 먼저 떼므로 그 전에 보낸 프레임은 뗀 영역에서 stale 로 답하고,
   // 붙은 영역이 놓인 그림을 notFound 로 표시하지 못하는 일이 없다(core docs/spec/plugins.md#surface-module-ownership).
   async function endSession() {
@@ -2181,197 +2125,260 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     await terminal.send(id, { operation: "close" });
     discardUnanswered("session-closed");
   }
-
-  // 공개 항목 등록
-  await Promise.all([
-    expose.status("term.session", read.session, watch("session")),
-    expose.status("term.screen", currentScreen, watchScreen),
-    expose.status("term.compose", read.compose, watch("compose")),
-    expose.status("term.cursor", read.cursor, watch("cursor")),
-    expose.command("term.input", async ({ bytes }) => {
-      if (typeof bytes !== "string") throw new Error("term.input requires bytes");
-      try {
-        await callerInput({ type: "input", actions: [{ type: "insert", text: bytes, replacementRange: null, attributed: false }], preedit: compose });
-      } catch (error) {
-        if (!(error instanceof SessionFailure)) reportInputError(error);
-        throw error;
-      }
-      return null;
-    }),
-    expose.command("term.screen.read", async () => {
-      if (region === null) throw new Error("Terminal not initialized");
-      return awaitScreen();
-    }),
-    expose.command("term.close", async () => {
-      await endSession();
-      return null;
-    }),
-    expose.command("term.image.inline.delete", async ({ name }) => {
-      if (typeof name !== "string" || name.length === 0) {
-        throw new Error("term.image.inline.delete requires a non-empty name");
-      }
-      await terminal.send(id, { operation: "image.inline.delete", name });
-      return null;
-    }),
-    expose.element("term.view", view),
-  ]);
-  await expose.command("term.focus", async () => {
-    try {
-      await region.focus();
-      return null;
-    } catch (error) {
-      reportInputError(error);
-      throw error;
-    }
-  });
-  // 빠진 필드는 지금 정책 값을 유지한다.
-  await expose.command("term.cursor.set", async (policy) => setCursorPolicy({
-    shape: cursor.shape, blink: cursor.blink, interval: cursor.interval, idleTimeout: cursor.idleTimeout,
-    unfocused: cursor.unfocused, ...policy,
-  }));
-  await expose.command("term.paste", pasteText);
-  await expose.command("term.scrollback.set", async ({ offset } = {}) => {
-    if (!Number.isInteger(offset) || offset < 0) throw new Error(`term.scrollback.set requires a nonnegative integer offset: ${String(offset)}`);
-    await terminal.send(id, { operation: "viewport", offset });
-    return null;
-  });
-  if (scrollbar) {
-    await Promise.all([
-      expose.element("term.scrollbar", scrollbar.track),
-      expose.element("term.scrollbar.thumb", scrollbar.thumb),
-      expose.mark(scrollbar.thumb, "term.scrollback.set"),
-    ]);
-  }
-  // 현재 선택의 텍스트는 사이드카가 copy 이벤트로 보낸다.
-  await expose.command("term.link.open", async ({ uri } = {}) => {
-    if (typeof uri !== "string" || uri.length === 0) throw new Error("term.link.open requires a uri");
-    if (!links) throw new Error("the terminal has no link capability");
-    await links.open(uri);
-  });
-  await expose.command("term.copy", async () => {
-    await terminal.send(id, { operation: "copy" });
-    return null;
-  });
-  await expose.command("term.drop", dropFiles);
-  // 진단 측정: 현재 세션에서 마스터가 쓰고 자식이 아직 읽지 않은 입력 바이트 수와 reader 가 읽은
-  // 자식 출력 누적 바이트 수를 한 번의 왕복으로 사이드카에 묻는다.
-  // The answer, a failed send, the next request, the sidecar-failure of the surface, a connection event or the close of the view
-  // ends the wait.
-  const readPtyPending = () => new Promise((resolve, reject) => {
-    if (pendingPtyRead) {
-      replacedPtyReads.push(pendingPtyRead);
-      pendingPtyRead.reject(new DOMException("pty.pending superseded", "AbortError"));
-    }
-    let settled = false;
-    const waiter = {
-      resolve: (pending) => {
-        if (settled) return;
-        settled = true;
-        resolve(pending);
-      },
-      reject: (error) => {
-        if (settled) return;
-        settled = true;
-        reject(error);
-      },
-    };
-    pendingPtyRead = waiter;
-    terminal.send(id, { operation: "pty.pending" }).catch((error) => {
-      if (pendingPtyRead === waiter) pendingPtyRead = null;
-      // A request whose send failed receives no answer.
-      const replaced = replacedPtyReads.indexOf(waiter);
-      if (replaced >= 0) replacedPtyReads.splice(replaced, 1);
-      waiter.reject(error);
-    });
-  });
-  // 진단 빌드에서는 진단 모듈이 preedit 주입, 입력 기록, PTY 전송 상태 측정 항목을 이 연산으로 등록한다.
-  if (diagnostics) {
-    await diagnostics.attach({
-      expose,
-      updateCompose,
-      onInput: (fn) => {
-        inputObservers.add(fn);
-        return () => inputObservers.delete(fn);
-      },
-      onPointer: (fn) => {
-        pointerObservers.add(fn);
-        return () => pointerObservers.delete(fn);
-      },
-      readPtyPending,
-      readViewHistory: () => window.history.length,
-      startViewFrames: diagnostics.startViewFrames,
-      viewLog: {
-        trace: (event, fields) => {
-          if (event !== "view.content_frame") throw new Error(`unexpected view frame event: ${String(event)}`);
-          return runtime.log.trace("view.content_frame", fields);
-        },
-      },
-      closing,
-      alterNextScreen: () => {
-        alterNextScreen = true;
-      },
-      reportError: (message) => setError("trace", message),
-      resolveError: () => {
-        if (resolveError("trace")) changed("session");
-      },
-    });
-  }
-  return {
-    setTheme,
-    setCursorPolicy,
-    pasteText,
-    async focus() {
-      if (nativeFocused) return;
-      let resolveFocus;
-      const focused = new Promise((resolve) => {
-        resolveFocus = resolve;
-        focusWaiters.add(resolve);
+  // A failure after the session opened ends the session before the failure leaves startTerminal, because the caller holds no
+  // controller for a failed start, so the session would otherwise stay open on the sidecar.
+  try {
+    let themeReady = Promise.resolve();
+    let themeSubscription = null;
+    if (typeof theme === "function") {
+      let first = true;
+      themeSubscription = theme((value) => {
+        if (!value || (value.scheme !== "dark" && value.scheme !== "light")) {
+          const error = new Error("theme callback must provide scheme dark or light");
+          reportInputError(error);
+          if (first) { first = false; return Promise.reject(error); }
+          return Promise.resolve();
+        }
+        // 마지막 테마를 기록한다 — 연결이 다시 맺히면 그 값으로 다시 보낸다(V5-106).
+        lastTheme = value;
+        const request = setTheme(value.scheme, value.tokens);
+        if (first) {
+          first = false;
+          return request.then(undefined, (error) => { reportInputError(error); throw error; });
+        }
+        return request.catch(reportInputError);
       });
+      // default: 구독 결과에 ready 약속이 없으면 구독 결과 자체가 첫 테마 적용의 완료다.
+      themeReady = Promise.resolve(themeSubscription?.ready ?? themeSubscription).catch((error) => {
+        reportInputError(error);
+        throw error;
+      });
+    }
+    await themeReady;
+
+    let settingsSubscription = null;
+    if (settings) {
+      applyScrollbarSettings(settings.read());
+      applyPaddingSettings(settings.read());
+      settingsSubscription = settings.on((values) => {
+        applyScrollbarSettings(values);
+        applyPaddingSettings(values);
+        applyTitle();
+        const nextClipboardPolicy = values["clipboard.program"];
+        if (!PROGRAM_CLIPBOARD_POLICIES.has(nextClipboardPolicy)) {
+          reportInputError(new Error(`clipboard.program setting is invalid: ${String(nextClipboardPolicy)}`));
+          return;
+        }
+        programClipboardPolicy = nextClipboardPolicy;
+        const policy = {
+          shape: values["cursor.shape"],
+          blink: values["cursor.blink"],
+          interval: values["cursor.interval"],
+          idleTimeout: values["cursor.idleTimeout"],
+          unfocused: values["cursor.unfocused"],
+        };
+        setCursorPolicy(policy).catch(reportInputError);
+        setFont(values["font.family"]).catch(reportInputError);
+      });
+    }
+
+    const textSizeSubscription = textSize.on((factor) => setTextSize(factor).catch(reportInputError));
+
+    // 공개 항목 등록
+    await Promise.all([
+      expose.status("term.session", read.session, watch("session")),
+      expose.status("term.screen", currentScreen, watchScreen),
+      expose.status("term.compose", read.compose, watch("compose")),
+      expose.status("term.cursor", read.cursor, watch("cursor")),
+      expose.command("term.input", async ({ bytes }) => {
+        if (typeof bytes !== "string") throw new Error("term.input requires bytes");
+        try {
+          await callerInput({ type: "input", actions: [{ type: "insert", text: bytes, replacementRange: null, attributed: false }], preedit: compose });
+        } catch (error) {
+          if (!(error instanceof SessionFailure)) reportInputError(error);
+          throw error;
+        }
+        return null;
+      }),
+      expose.command("term.screen.read", async () => {
+        if (region === null) throw new Error("Terminal not initialized");
+        return awaitScreen();
+      }),
+      expose.command("term.close", async () => {
+        await endSession();
+        return null;
+      }),
+      expose.command("term.image.inline.delete", async ({ name }) => {
+        if (typeof name !== "string" || name.length === 0) {
+          throw new Error("term.image.inline.delete requires a non-empty name");
+        }
+        await terminal.send(id, { operation: "image.inline.delete", name });
+        return null;
+      }),
+      expose.element("term.view", view),
+    ]);
+    await expose.command("term.focus", async () => {
       try {
         await region.focus();
-        if (!nativeFocused) await focused;
+        return null;
       } catch (error) {
-        focusWaiters.delete(resolveFocus);
+        reportInputError(error);
         throw error;
       }
-    },
-    async dispose() {
-      screenWatchDisposed = true;
-      let screenWatchError;
-      try { await updateScreenWatch(); } catch (error) {
-        screenWatchError = error;
-        reportInputError(error, "screen");
+    });
+    // 빠진 필드는 지금 정책 값을 유지한다.
+    await expose.command("term.cursor.set", async (policy) => setCursorPolicy({
+      shape: cursor.shape, blink: cursor.blink, interval: cursor.interval, idleTimeout: cursor.idleTimeout,
+      unfocused: cursor.unfocused, ...policy,
+    }));
+    await expose.command("term.paste", pasteText);
+    await expose.command("term.scrollback.set", async ({ offset } = {}) => {
+      if (!Number.isInteger(offset) || offset < 0) throw new Error(`term.scrollback.set requires a nonnegative integer offset: ${String(offset)}`);
+      await terminal.send(id, { operation: "viewport", offset });
+      return null;
+    });
+    if (scrollbar) {
+      await Promise.all([
+        expose.element("term.scrollbar", scrollbar.track),
+        expose.element("term.scrollbar.thumb", scrollbar.thumb),
+        expose.mark(scrollbar.thumb, "term.scrollback.set"),
+      ]);
+    }
+    // 현재 선택의 텍스트는 사이드카가 copy 이벤트로 보낸다.
+    await expose.command("term.link.open", async ({ uri } = {}) => {
+      if (typeof uri !== "string" || uri.length === 0) throw new Error("term.link.open requires a uri");
+      if (!links) throw new Error("the terminal has no link capability");
+      await links.open(uri);
+    });
+    await expose.command("term.copy", async () => {
+      await terminal.send(id, { operation: "copy" });
+      return null;
+    });
+    await expose.command("term.drop", dropFiles);
+    // 진단 측정: 현재 세션에서 마스터가 쓰고 자식이 아직 읽지 않은 입력 바이트 수와 reader 가 읽은
+    // 자식 출력 누적 바이트 수를 한 번의 왕복으로 사이드카에 묻는다.
+    // The answer, a failed send, the next request, the sidecar-failure of the surface, a connection event or the close of the view
+    // ends the wait.
+    const readPtyPending = () => new Promise((resolve, reject) => {
+      if (pendingPtyRead) {
+        replacedPtyReads.push(pendingPtyRead);
+        pendingPtyRead.reject(new DOMException("pty.pending superseded", "AbortError"));
       }
-      closing.removeEventListener("abort", closeScreenWatch);
-      closing.removeEventListener("abort", closeSidecarWaits);
-      if (diagnostics) for (const type of pointerTraceTypes) view.removeEventListener(type, tracePointer);
-      const offTheme = await themeSubscription?.dispose;
-      // default: 테마나 설정 구독이 없으면 해제 함수도 없다.
-      offTheme?.();
-      // default: 설정 구독이 없으면 해제 함수도 없다.
-      settingsSubscription?.();
-      textSizeSubscription();
-      // default: 사이드카 구독을 만들지 못한 경우에는 해제 함수가 없다.
-      stopSidecar?.();
-      stopFailure?.();
-      view.removeEventListener("pointerdown", preventDefaultFocus);
-      view.removeEventListener("pointerdown", beginSelection);
-      view.removeEventListener("pointermove", updateSelection);
-      view.removeEventListener("pointermove", hoverLink);
-      view.removeEventListener("pointermove", hoverMouse);
-      view.removeEventListener("pointerleave", hoverLink);
-      view.removeEventListener("pointerup", endSelection);
-      view.removeEventListener("wheel", scrollWheel);
-      if (scrollbar) {
-        scrollbar.thumb.removeEventListener("pointerdown", beginThumbDrag);
-        scrollbar.thumb.removeEventListener("pointermove", moveThumb);
-        scrollbar.thumb.removeEventListener("pointerup", endThumbDrag);
-        scrollbar.thumb.removeEventListener("pointercancel", endThumbDrag);
-      }
-      view.removeEventListener("pointercancel", endSelection);
-      view.removeEventListener("lostpointercapture", endSelection);
-      await endSession();
-      if (screenWatchError) throw screenWatchError;
-    },
-  };
+      let settled = false;
+      const waiter = {
+        resolve: (pending) => {
+          if (settled) return;
+          settled = true;
+          resolve(pending);
+        },
+        reject: (error) => {
+          if (settled) return;
+          settled = true;
+          reject(error);
+        },
+      };
+      pendingPtyRead = waiter;
+      terminal.send(id, { operation: "pty.pending" }).catch((error) => {
+        if (pendingPtyRead === waiter) pendingPtyRead = null;
+        // A request whose send failed receives no answer.
+        const replaced = replacedPtyReads.indexOf(waiter);
+        if (replaced >= 0) replacedPtyReads.splice(replaced, 1);
+        waiter.reject(error);
+      });
+    });
+    // 진단 빌드에서는 진단 모듈이 preedit 주입, 입력 기록, PTY 전송 상태 측정 항목을 이 연산으로 등록한다.
+    if (diagnostics) {
+      await diagnostics.attach({
+        expose,
+        updateCompose,
+        onInput: (fn) => {
+          inputObservers.add(fn);
+          return () => inputObservers.delete(fn);
+        },
+        onPointer: (fn) => {
+          pointerObservers.add(fn);
+          return () => pointerObservers.delete(fn);
+        },
+        readPtyPending,
+        readViewHistory: () => window.history.length,
+        startViewFrames: diagnostics.startViewFrames,
+        viewLog: {
+          trace: (event, fields) => {
+            if (event !== "view.content_frame") throw new Error(`unexpected view frame event: ${String(event)}`);
+            return runtime.log.trace("view.content_frame", fields);
+          },
+        },
+        closing,
+        alterNextScreen: () => {
+          alterNextScreen = true;
+        },
+        reportError: (message) => setError("trace", message),
+        resolveError: () => {
+          if (resolveError("trace")) changed("session");
+        },
+      });
+    }
+    return {
+      setTheme,
+      setCursorPolicy,
+      pasteText,
+      async focus() {
+        if (nativeFocused) return;
+        let resolveFocus;
+        const focused = new Promise((resolve) => {
+          resolveFocus = resolve;
+          focusWaiters.add(resolve);
+        });
+        try {
+          await region.focus();
+          if (!nativeFocused) await focused;
+        } catch (error) {
+          focusWaiters.delete(resolveFocus);
+          throw error;
+        }
+      },
+      async dispose() {
+        screenWatchDisposed = true;
+        let screenWatchError;
+        try { await updateScreenWatch(); } catch (error) {
+          screenWatchError = error;
+          reportInputError(error, "screen");
+        }
+        closing.removeEventListener("abort", closeScreenWatch);
+        closing.removeEventListener("abort", closeSidecarWaits);
+        if (diagnostics) for (const type of pointerTraceTypes) view.removeEventListener(type, tracePointer);
+        const offTheme = await themeSubscription?.dispose;
+        // default: 테마나 설정 구독이 없으면 해제 함수도 없다.
+        offTheme?.();
+        // default: 설정 구독이 없으면 해제 함수도 없다.
+        settingsSubscription?.();
+        textSizeSubscription();
+        // default: 사이드카 구독을 만들지 못한 경우에는 해제 함수가 없다.
+        stopSidecar?.();
+        stopFailure?.();
+        view.removeEventListener("pointerdown", preventDefaultFocus);
+        view.removeEventListener("pointerdown", beginSelection);
+        view.removeEventListener("pointermove", updateSelection);
+        view.removeEventListener("pointermove", hoverLink);
+        view.removeEventListener("pointermove", hoverMouse);
+        view.removeEventListener("pointerleave", hoverLink);
+        view.removeEventListener("pointerup", endSelection);
+        view.removeEventListener("wheel", scrollWheel);
+        if (scrollbar) {
+          scrollbar.thumb.removeEventListener("pointerdown", beginThumbDrag);
+          scrollbar.thumb.removeEventListener("pointermove", moveThumb);
+          scrollbar.thumb.removeEventListener("pointerup", endThumbDrag);
+          scrollbar.thumb.removeEventListener("pointercancel", endThumbDrag);
+        }
+        view.removeEventListener("pointercancel", endSelection);
+        view.removeEventListener("lostpointercapture", endSelection);
+        await endSession();
+        if (screenWatchError) throw screenWatchError;
+      },
+    };
+  } catch (error) {
+    const cleanup = await endSession().then(() => null, (failure) => failure);
+    if (cleanup) throw new AggregateError([error, cleanup], "terminal start and session cleanup failed");
+    throw error;
+  }
 }

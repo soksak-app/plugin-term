@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createViewContext, createViewErrorReporter } from "../build/test/ui/view-context.js";
+import { createViewContext, createViewErrorReporter } from "../ui/view-context.js";
 
 function bridgeWith({ log, error }) {
   const requests = [];

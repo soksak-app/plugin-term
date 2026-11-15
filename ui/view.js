@@ -73,4 +73,8 @@ const diagnostics = loadedDiagnostics === null ? null : {
   },
 };
 const { context } = createViewContext({ bridge, start, report, diagnostics, scale, settings });
-await mountPage(context, report);
+const mounted = await mountPage(context, report);
+// The view ends with its page: the mount disposes the terminal and its bindings on pagehide, so the view ends its session and its entries.
+addEventListener("pagehide", () => {
+  mounted?.dispose().catch((error) => report(`view terminal: dispose failed: ${error?.message ?? error}`));
+}, { once: true });

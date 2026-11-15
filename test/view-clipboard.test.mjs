@@ -5,7 +5,7 @@
 // fake fetch records each request with its address resolved against the address of a view document.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { viewClipboard } from "../build/test/ui/view-clipboard.js";
+import { viewClipboard } from "../ui/view-clipboard.js";
 
 const DOCUMENT = "soksak://probe/ui/terminal.html";
 const ID = "0123456789abcdef0123456789abcdef";

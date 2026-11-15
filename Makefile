@@ -5,7 +5,7 @@
 install:
 	pnpm install --frozen-lockfile
 
-# test builds a copied UI tree with literal contract fakes, then runs only plugin tests.
+# test runs the plugin tests against the plugin API release pinned in package.json and the UI modules.
 test:
 	pnpm test
 

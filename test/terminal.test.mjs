@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import * as terminalDiagnostics from "../build/test/ui/terminal-diagnostics.js";
+import * as terminalDiagnostics from "../ui/terminal-diagnostics.js";
 import { screenMessage } from "./screen-message.mjs";
 
 const terminalManifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
@@ -999,7 +999,7 @@ const P74_SCREEN_MESSAGES = {
   },
 };
 
-const { startTerminal: realStartTerminal } = await import("../build/test/ui/terminal.js?terminal-test");
+const { startTerminal: realStartTerminal } = await import("../ui/terminal.js?terminal-test");
 
 let nativeInputSequence = 0;
 const inputPreedit = (text = "", fields = {}) => ({

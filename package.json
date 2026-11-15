@@ -15,7 +15,6 @@
   },
   "files": [
     "plugin.json",
-    "contract-copies.json",
     "diagnostics.json",
     "ui/terminal-diagnostics.js",
     "events.json",
@@ -31,7 +30,7 @@
     "ui/terminal.js"
   ],
   "scripts": {
-    "test": "node scripts/build-test.mjs && node --test test/"
+    "test": "node --test test/"
   },
   "devDependencies": {
     "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz",
