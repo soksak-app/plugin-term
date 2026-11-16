@@ -1,5 +1,5 @@
 # term plugin repository 의 test 와 pack(docs/features.md). pack 은 pnpm pack 으로 release 를 쓴다.
-.PHONY: install test check pack check-candidate-install check-push install-hooks
+.PHONY: install test test-app check pack check-candidate-install check-push install-hooks
 
 # The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies; the tests, checks and packs consume them without installing.
 install:
@@ -8,6 +8,12 @@ install:
 # test runs the plugin tests; the plugin API specifiers of the UI modules resolve to the fixtures of test/fixtures/plugin-api.
 test:
 	pnpm test
+
+# test-app runs the window checks of e2e/ against the published core application of the @soksak/window-check release that
+# package.json names (docs/operations/window-checks.md). It needs a display and a person's computer, so it runs only locally and
+# no workflow runs it.
+test-app:
+	pnpm exec sok-test-app
 
 # check runs the checks of the kit releases that package.json pins: sok-check events counts the records missing from the sources
 # and matches events.json with the emit sites, and sok-check docs checks the records. The application validates plugin.json

@@ -9,10 +9,13 @@ Term plugin: a full-screen terminal surface. Its sidecar `@soksak/sidecar-alacri
 ```sh
 make test                                   # tests
 make check                                  # event source check and document checks
+make test-app                               # window checks against the published core application (local only)
 make pack OUT=<folder> # the plugin release
 make install-hooks                                  # once after cloning: check commit messages and records at commit time
 ```
 
 `make check` runs the event source check and the document check of the kit that `package.json` pins. The application validates `plugin.json` when it installs the release, and the registry check compares the exposed names of the release with the declarations of each listed core.
+
+The window checks are described in [docs/operations/window-checks.md](docs/operations/window-checks.md).
 
 The checklist is [docs/features.md](docs/features.md).
