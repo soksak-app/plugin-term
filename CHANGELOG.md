@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P47: The copy of the shared terminal state cases of core equals core `docs/spec/cases/terminal-state/osc133.json` again, with the mark `P` and its two cases; the page passes them unchanged.
 - P46: The status `term.activity` publishes the core activity level of the terminal, derived from `term.state` and its exit code as core `docs/spec/terminal-state.md#activity` defines, and notifies only when the level changes. Its declaration `activity: true` waits for a core release with F982 (P46-1).
 - P44: The status `term.state` shows the terminal state of core `docs/spec/terminal-state.md`: the view reads `shell.state.read` once each time the session opens or is attached again and follows each `shell.state` change event; an event or a reply of another form is a session error and keeps the value. The 17 new tests failed on the unchanged page with `the status term.state is not declared` and pass, and `pnpm test` passes 340 of 340. The change reaches users only with the pin of a sidecar release that carries alacritty S190 (P45).
 - P42: The view places the scrollbar thumb in CSS relative to the track, with the height `max(16px, P%)` and the top `min(calc(100% - max(16px, P%)), Q%)` from `rows` and `scrollback`, reads no rectangle for the placement, and draws the thumb again when a `state` event changes the rows; at the newest output the thumb ends at the bottom of the track after a change of the size or of the rows. Red: the row change test failed with `['300px', '300px']`. Green: `node --test` of the terminal and page tests passes 234 of 234.
