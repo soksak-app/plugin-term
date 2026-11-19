@@ -7452,21 +7452,27 @@ test("term.activity notifies its watchers only when the level changes", { timeou
   assert.deepEqual(seen, ["idle", "running", "failed", "idle", "running", null]);
 });
 
-// The row-range reads of term.screen.rows on an open session.
+// The row-range reads of term.screen.rows on an open session. Each read sends screen.read with one correlation identifier, and
+// the sidecar names it in its answer (core docs/spec/sidecars.md#protocol); `answer` sends an event under the cids of the read
+// of that range.
 async function rowsTerminal() {
   const sidecar = createFakeSidecar();
   const expose = createFakeExpose();
+  const lines = [];
   await startTerminal({
     view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
-    window: { TextEncoder },
+    window: { TextEncoder }, runtime: { log: recorder(lines) },
   });
   openSession(sidecar);
   const rows = expose.getCommand("term.screen.rows");
   assert(rows, "term.screen.rows command registered");
-  const emit = (event) => sidecar.triggerEvent("test-session", event);
+  const readOf = (from, count) =>
+    sidecar.getMessages().find(({ body }) => body.operation === "screen.read" && body.from === from && body.count === count)?.body;
   const requested = (from, count) =>
     sidecar.untilMessage((body) => body.operation === "screen.read" && body.from === from && body.count === count);
-  return { sidecar, rows, emit, requested };
+  const cidsOf = (from, count) => sidecar.getCids(readOf(from, count));
+  const answer = (from, count, body) => sidecar.triggerRaw("test-session", body, cidsOf(from, count));
+  return { sidecar, expose, lines, rows, requested, cidsOf, answer };
 }
 
 // term.screen.rows sends screen.read with a row range; the screen.rows event that answers it carries the rows, and the command
@@ -7475,7 +7481,7 @@ test("term.screen.rows sends a row range and returns the rows and their plain te
   const terminal = await rowsTerminal();
   const reading = terminal.rows({ from: 4, count: 2 });
   await terminal.requested(4, 2);
-  terminal.emit({
+  terminal.answer(4, 2, {
     event: "screen.rows", from: 4, count: 2,
     rows: [[{ ch: "a", width: 1 }, { ch: "b", width: 1 }], [{ ch: "c", width: 1 }, { ch: "", width: 0 }]],
   });
@@ -7484,6 +7490,7 @@ test("term.screen.rows sends a row range and returns the rows and their plain te
   assert.equal(result.rows.length, 2, "the rows are returned with their cells");
   assert.equal(result.from, 4);
   assert.equal(result.count, 2);
+  assert.equal(terminal.cidsOf(4, 2).length, 1, "the range read carries one correlation identifier, which its answer names");
 
   await assert.rejects(terminal.rows({ from: 4 }), /count/, "a range with only from is refused before a request is sent");
 });
@@ -7499,16 +7506,33 @@ test("term.screen.rows refuses a range out of bounds before a request", { timeou
   assert.equal(readRequests(), before, "a refused range sends no screen.read request");
 });
 
-// A screen.rows event of another range does not answer a waiting read: the event of the other range arrives first, and the
-// read returns the rows of the event of its own range, which arrives after it.
-test("term.screen.rows is answered only by the screen.rows event of its range", { timeout: 10000 }, async () => {
+// A screen.rows event that does not name the cids of a waiting read does not answer it, even for the same range: that event
+// arrives first, and the read returns the rows of the answer under its own cids, which arrives after it.
+test("term.screen.rows is answered only by the answer that names its correlation identifier", { timeout: 10000 }, async () => {
   const terminal = await rowsTerminal();
   const reading = terminal.rows({ from: 4, count: 1 });
   await terminal.requested(4, 1);
-  terminal.emit({ event: "screen.rows", from: 5, count: 1, rows: [[{ ch: "x", width: 1 }]] });
-  terminal.emit({ event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "y", width: 1 }]] });
+  terminal.sidecar.triggerRaw("test-session", { event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "x", width: 1 }]] }, []);
+  terminal.answer(4, 1, { event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "y", width: 1 }]] });
   const result = await reading;
-  assert.deepEqual(result.text, ["y"], "the read returned the rows of another range");
+  assert.deepEqual(result.text, ["y"], "the read returned the rows of an event that does not name it");
+  assert.deepEqual(terminal.lines.filter(([name]) => name === "screen.rows.unmatched").map(([, fields]) => fields),
+    [{ from: 4, count: 1 }], "the event that names no read is recorded as unmatched");
+});
+
+// A range outside the retained rows is refused by the sidecar with {error, reason} under the cids of the read; the command rejects
+// with that reason, the session shows no error, and the read waits no longer, so a later reply under the same cids answers no read.
+test("term.screen.rows rejects with the reason of the sidecar refusal of its range", { timeout: 10000 }, async () => {
+  const terminal = await rowsTerminal();
+  const reading = terminal.rows({ from: 0, count: 3 });
+  reading.catch(() => {});
+  await terminal.requested(0, 3);
+  const reason = "screen.read from 0 count 3 is outside the retained rows 5 to 40";
+  terminal.answer(0, 3, { error: "invalidParams", reason, operation: "screen.read" });
+  // A failure of the sidecar would end a read that still waits with its own reason.
+  terminal.sidecar.triggerFailure("test-session", "the service exited");
+  await assert.rejects(reading, { message: `term.screen.rows: invalidParams: ${reason}` });
+  assert.equal(terminal.expose.getStatus("term.session").readFn().error ?? null, null, "a refused range read is no session error");
 });
 
 // A sidecar failure ends a waiting range read.
