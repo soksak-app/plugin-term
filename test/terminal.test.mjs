@@ -1824,8 +1824,8 @@ test("wheel input is sent as whole scroll lines at the pointer cell and the scre
   assert.deepEqual(scrolls().slice(3), [{ operation: "scroll", lines: 1, col: 2, row: 2, shift: true }]);
 
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false },
-    scrollback: { offset: 3, history: 40 } });
-  assert.deepEqual(fakeExpose.getStatus("term.session").readFn().scrollback, { offset: 3, history: 40 });
+    scrollback: { offset: 3, history: 40, dropped: 0 } });
+  assert.deepEqual(fakeExpose.getStatus("term.session").readFn().scrollback, { offset: 3, history: 40, dropped: 0 });
 });
 
 test("the trace records each wheel gesture with its deltas, the cell height and the lines it sends", async () => {
@@ -1867,12 +1867,12 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
 
   // 50 rows, 50 lines of history and offset 25: the thumb is half of the track high and starts at a quarter of it.
   const screen = (offset) => fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
-    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset, history: 50 } });
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset, history: 50, dropped: 0 } });
   screen(25);
   assert.equal(track.hidden, false);
   // 트랙은 네이티브 그림이 잘린 자리를 칠하므로 터미널의 현재 기본 배경색이어야 한다.
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], background: "#102030",
-    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 25, history: 50 } });
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 25, history: 50, dropped: 0 } });
   assert.equal(track.style.background, "#102030");
   assert.deepEqual([thumb.style.height, thumb.style.top], ["max(16px, 50%)", "min(calc(100% - max(16px, 50%)), 25%)"]);
 
@@ -1890,7 +1890,7 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
   assert.equal(track.hidden, false);
   assert.deepEqual([thumb.style.height, thumb.style.top], ["max(16px, 50%)", "min(calc(100% - max(16px, 50%)), 50%)"]);
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], cursor: { col: 0, row: 0, visible: true, focused: false, shape: "Block", blinking: false },
-    scrollback: { offset: 0, history: 0 } });
+    scrollback: { offset: 0, history: 0, dropped: 0 } });
   assert.equal(track.hidden, true, "the scrollbar is hidden without history");
 });
 
@@ -1908,7 +1908,7 @@ test("the scrollbar thumb ends at the bottom of the track at the newest output a
   openSession(fakeSidecar);
   // The history is at its limit and the terminal shows the newest output, so later events keep offset 0 and history 50.
   const screen = () => fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
-    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 0, history: 50 } });
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 0, history: 50, dropped: 0 } });
   screen();
   // The card becomes smaller: the track is 400 pixels high and the terminal has 30 rows.
   trackHeight = 400;
@@ -1930,7 +1930,7 @@ test("the scrollbar thumb is placed relative to the track without a measured rec
   });
   openSession(fakeSidecar);
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
-    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 10, history: 150 } });
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 10, history: 150, dropped: 0 } });
   // 50 of 200 rows are visible and 140 lines lie above the viewport: height 25% and top 70%.
   assert.deepEqual([track.hidden, thumb.style.height, thumb.style.top], [false, "max(16px, 25%)", "min(calc(100% - max(16px, 25%)), 70%)"]);
 });
@@ -1954,7 +1954,7 @@ test("scrollbar settings set the track background, thumb color, width, and shape
   });
   openSession(fakeSidecar);
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], background: "#102030",
-    cursor: { col: 0, row: 0, visible: true, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 0, history: 50 } });
+    cursor: { col: 0, row: 0, visible: true, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 0, history: 50, dropped: 0 } });
   assert.deepEqual([track.style.width, track.style.background, thumb.style.background, thumb.style.borderRadius],
     ["16px", "#102030", "#ff000080", "0px"]);
 
@@ -3475,22 +3475,22 @@ test("a view event publishes the cursor of its frame, moves the input-method car
   const frame = { generation: 1, raster: 1, sequence: 4 };
   const cursor = { col: 3, row: 1, visible: true, focused: true, shape: "Block", blinking: false, blinkVisible: true, caret: { row: 1, col: 3 } };
 
-  fakeSidecar.triggerRaw("test-session", { event: "view", frame, rows: 24, cols: 80, cursor, scrollback: { offset: 0, history: 12 } });
+  fakeSidecar.triggerRaw("test-session", { event: "view", frame, rows: 24, cols: 80, cursor, scrollback: { offset: 0, history: 12, dropped: 0 }, alternate: { active: false, history: 0, dropped: 0 } });
 
   const status = expose.getStatus("term.cursor").readFn();
   assert.deepEqual({ col: status.col, row: status.row, visible: status.visible, caret: status.caret, frame: status.frame, render: status.render },
     { col: 3, row: 1, visible: true, caret: { row: 1, col: 3 }, frame, render: null });
   assert.deepEqual(regionReference._caret, { x: 24, y: 16, width: 8, height: 16 }, "the input-method caret follows the caret of the frame");
-  assert.deepEqual(expose.getStatus("term.session").readFn().scrollback, { offset: 0, history: 12 });
+  assert.deepEqual(expose.getStatus("term.session").readFn().scrollback, { offset: 0, history: 12, dropped: 0 });
 
   fakeSidecar.triggerRaw("test-session", { event: "view", frame: { ...frame, sequence: 5 }, rows: 24, cols: 80, cursor: { ...cursor, caret: { row: 50, col: 0 } },
-    scrollback: { offset: 0, history: 13 } });
+    scrollback: { offset: 0, history: 13, dropped: 0 }, alternate: { active: false, history: 0, dropped: 0 } });
   assert.deepEqual(expose.getStatus("term.cursor").readFn().frame, frame, "a caret outside the grid does not replace the cursor");
-  assert.deepEqual(expose.getStatus("term.session").readFn().scrollback, { offset: 0, history: 12 }, "a refused view changes no scrollback");
+  assert.deepEqual(expose.getStatus("term.session").readFn().scrollback, { offset: 0, history: 12, dropped: 0 }, "a refused view changes no scrollback");
   assert.match(expose.getStatus("term.session").readFn().error ?? "", /invalid view/, "a refused view is reported as an error");
   // The grid of the frame judges its caret: the state event of a new grid can follow the first view of that grid.
   fakeSidecar.triggerRaw("test-session", { event: "view", frame: { ...frame, sequence: 6 }, rows: 60, cols: 200, cursor: { ...cursor, caret: { row: 50, col: 150 } },
-    scrollback: { offset: 0, history: 14 } });
+    scrollback: { offset: 0, history: 14, dropped: 0 }, alternate: { active: false, history: 0, dropped: 0 } });
   assert.deepEqual(expose.getStatus("term.cursor").readFn().caret, { row: 50, col: 150 }, "a caret inside the grid of its frame was refused");
 });
 
@@ -3511,7 +3511,8 @@ async function startWatchedScreen(options, overrides = {}) {
 }
 
 const VIEW_EVENT = {
-  event: "view", frame: { generation: 1, raster: 1, sequence: 4 }, rows: 24, cols: 80, scrollback: { offset: 0, history: 0 },
+  event: "view", frame: { generation: 1, raster: 1, sequence: 4 }, rows: 24, cols: 80, scrollback: { offset: 0, history: 0, dropped: 0 },
+  alternate: { active: false, history: 0, dropped: 0 },
   cursor: { col: 0, row: 0, visible: true, focused: true, shape: "Block", blinking: false, blinkVisible: true, caret: { row: 0, col: 0 }, preedit: null },
 };
 
@@ -7337,6 +7338,80 @@ test("the focus that a reattached session reads does not hold the input that wai
   assert.deepEqual(sent, [[{ type: "focus", focused: false }], [inputKey("Enter")]]);
 });
 
+// The kept-rows read of core docs/spec/terminal-read.md#alternate-rows: the command requires screen (primary or alternate) and
+// refuses a request without it before any request, sends it to the sidecar, and accepts only the answer of the same screen.
+test("term.screen.rows requires its screen, sends it and returns the rows of that screen", { timeout: 10000 }, async () => {
+  FakeResizeObserver.reset();
+  const sidecar = createFakeSidecar();
+  const expose = createFakeExpose();
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
+    scale: 1, window: { ResizeObserver: FakeResizeObserver, TextEncoder, devicePixelRatio: 1 },
+  });
+  FakeResizeObserver.triggerAll();
+  const rowsCommand = expose.getCommand("term.screen.rows");
+  const reads = () => sidecar.getMessages().filter(({ body }) => body.operation === "screen.read" && body.from === 2).map(({ body }) => body);
+
+  for (const params of [{ from: 2, count: 1 }, { screen: "other", from: 2, count: 1 }]) {
+    const refused = rowsCommand(params).then(() => "answered", (error) => error.message);
+    const outcome = await Promise.race([refused, sidecar.untilMessage((body) => body.operation === "screen.read").then(() => "sent")]);
+    assert.match(outcome, /screen \(primary or alternate\)/, `${JSON.stringify(params)} is refused before any request`);
+  }
+  assert.deepEqual(reads(), [], "a refused screen sends no screen.read request");
+
+  const reading = rowsCommand({ screen: "alternate", from: 2, count: 1 });
+  await sidecar.untilMessage((body) => body.operation === "screen.read" && body.from === 2);
+  assert.deepEqual(reads().map(({ screen, from, count }) => ({ screen, from, count })), [{ screen: "alternate", from: 2, count: 1 }]);
+  const cids = sidecar.getCids(reads()[0]);
+  sidecar.triggerRaw("test-session", { event: "screen.rows", screen: "alternate", from: 2, count: 1, rows: [[{ ch: "x", width: 1 }]] }, cids);
+  assert.deepEqual(await reading, { screen: "alternate", from: 2, count: 1, rows: [[{ ch: "x", width: 1 }]], text: ["x"] });
+
+  // The answer of another screen answers no read of this screen.
+  const other = rowsCommand({ screen: "alternate", from: 2, count: 1 });
+  other.catch(() => {});
+  await sidecar.until(() => reads().length === 2);
+  sidecar.triggerRaw("test-session", { event: "screen.rows", screen: "primary", from: 2, count: 1, rows: [[]] }, sidecar.getCids(reads()[1]));
+  await assert.rejects(other, /mismatched answer.*"screen":"primary"/);
+});
+
+// The session state of core docs/spec/terminal-read.md#session-state: term.session keeps scrollback with dropped and the
+// alternate member of each view event and the foreground of each foreground event, and refuses an event of another form.
+test("term.session keeps the members of the read modes that the view and foreground events carry", { timeout: 10000 }, async () => {
+  FakeResizeObserver.reset();
+  const fakeSidecar = createFakeSidecar();
+  const expose = createFakeExpose();
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar: fakeSidecar,
+    expose, scale: 1, window: { ResizeObserver: FakeResizeObserver, TextEncoder, devicePixelRatio: 1 },
+  });
+  FakeResizeObserver.triggerAll();
+  openSession(fakeSidecar);
+  const session = () => expose.getStatus("term.session").readFn();
+  assert.deepEqual([session().alternate, session().foreground], [{ active: false, history: 0, dropped: 0 }, null], "the members before any event");
+
+  fakeSidecar.triggerRaw("test-session", { ...VIEW_EVENT, scrollback: { offset: 0, history: 30, dropped: 7 }, alternate: { active: true, history: 3, dropped: 1 } });
+  assert.deepEqual([session().scrollback, session().alternate], [{ offset: 0, history: 30, dropped: 7 }, { active: true, history: 3, dropped: 1 }]);
+
+  for (const foreground of [{ pid: 42, command: "/usr/bin/less", cwd: "/tmp" },
+    { pid: 43, command: null, cwd: null, error: "proc_pidpath of 43: Operation not permitted" }, null]) {
+    fakeSidecar.triggerRaw("test-session", { event: "foreground", foreground });
+    assert.deepEqual(session().foreground, foreground);
+  }
+  assert.equal(session().error, undefined, "valid events report no error");
+
+  fakeSidecar.triggerRaw("test-session", { event: "foreground", foreground: { pid: "42", command: "/usr/bin/less", cwd: "/tmp" } });
+  assert.match(session().error ?? "", /invalid foreground from sidecar/);
+  assert.equal(session().foreground, null, "a refused foreground event changes no foreground");
+
+  for (const overrides of [{ alternate: undefined }, { alternate: { active: "yes", history: 0, dropped: 0 } },
+    { scrollback: { offset: 0, history: 30 } }]) {
+    fakeSidecar.triggerRaw("test-session", { ...VIEW_EVENT, frame: { generation: 1, raster: 1, sequence: 5 }, ...overrides });
+    assert.match(session().error ?? "", /invalid view (alternate|scrollback) from sidecar/, JSON.stringify(overrides));
+    assert.deepEqual([session().scrollback, session().alternate], [{ offset: 0, history: 30, dropped: 7 }, { active: true, history: 3, dropped: 1 }],
+      "a refused view changes no member");
+  }
+});
+
 // The terminal state (core docs/spec/terminal-state.md). `test/fixtures/terminal-state-osc133.json` is the copy of core
 // `docs/spec/cases/terminal-state/osc133.json`; a change of the contract replaces the copy.
 const STATE_CASES = JSON.parse(readFileSync(new URL("./fixtures/terminal-state-osc133.json", import.meta.url), "utf8")).cases;
@@ -7480,10 +7555,10 @@ async function rowsTerminal() {
 // returns the rows with the plain text of each row.
 test("term.screen.rows sends a row range and returns the rows and their plain text", { timeout: 10000 }, async () => {
   const terminal = await rowsTerminal();
-  const reading = terminal.rows({ from: 4, count: 2 });
+  const reading = terminal.rows({ screen: "primary", from: 4, count: 2 });
   await terminal.requested(4, 2);
   terminal.answer(4, 2, {
-    event: "screen.rows", from: 4, count: 2,
+    event: "screen.rows", screen: "primary", from: 4, count: 2,
     rows: [[{ ch: "a", width: 1 }, { ch: "b", width: 1 }], [{ ch: "c", width: 1 }, { ch: "", width: 0 }]],
   });
   const result = await reading;
@@ -7493,7 +7568,7 @@ test("term.screen.rows sends a row range and returns the rows and their plain te
   assert.equal(result.count, 2);
   assert.equal(terminal.cidsOf(4, 2).length, 1, "the range read carries one correlation identifier, which its answer names");
 
-  await assert.rejects(terminal.rows({ from: 4 }), /count/, "a range with only from is refused before a request is sent");
+  await assert.rejects(terminal.rows({ screen: "primary", from: 4 }), /count/, "a range with only from is refused before a request is sent");
 });
 
 // A count outside 1 to 200 and a from below 0 are refused before any request.
@@ -7501,9 +7576,9 @@ test("term.screen.rows refuses a range out of bounds before a request", { timeou
   const terminal = await rowsTerminal();
   const readRequests = () => terminal.sidecar.getMessages().filter(({ body }) => body.operation === "screen.read").length;
   const before = readRequests();
-  await assert.rejects(terminal.rows({ from: 0, count: 201 }), /count/, "a count above 200 is refused");
-  await assert.rejects(terminal.rows({ from: 0, count: 0 }), /count/, "a count below 1 is refused");
-  await assert.rejects(terminal.rows({ from: -1, count: 1 }), /from/, "a negative from is refused");
+  await assert.rejects(terminal.rows({ screen: "primary", from: 0, count: 201 }), /count/, "a count above 200 is refused");
+  await assert.rejects(terminal.rows({ screen: "primary", from: 0, count: 0 }), /count/, "a count below 1 is refused");
+  await assert.rejects(terminal.rows({ screen: "primary", from: -1, count: 1 }), /from/, "a negative from is refused");
   assert.equal(readRequests(), before, "a refused range sends no screen.read request");
 });
 
@@ -7511,10 +7586,10 @@ test("term.screen.rows refuses a range out of bounds before a request", { timeou
 // arrives first, and the read returns the rows of the answer under its own cids, which arrives after it.
 test("term.screen.rows is answered only by the answer that names its correlation identifier", { timeout: 10000 }, async () => {
   const terminal = await rowsTerminal();
-  const reading = terminal.rows({ from: 4, count: 1 });
+  const reading = terminal.rows({ screen: "primary", from: 4, count: 1 });
   await terminal.requested(4, 1);
-  terminal.sidecar.triggerRaw("test-session", { event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "x", width: 1 }]] }, []);
-  terminal.answer(4, 1, { event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "y", width: 1 }]] });
+  terminal.sidecar.triggerRaw("test-session", { event: "screen.rows", screen: "primary", from: 4, count: 1, rows: [[{ ch: "x", width: 1 }]] }, []);
+  terminal.answer(4, 1, { event: "screen.rows", screen: "primary", from: 4, count: 1, rows: [[{ ch: "y", width: 1 }]] });
   const result = await reading;
   assert.deepEqual(result.text, ["y"], "the read returned the rows of an event that does not name it");
   assert.deepEqual(terminal.lines.filter(([name]) => name === "screen.rows.unmatched").map(([, fields]) => fields),
@@ -7525,7 +7600,7 @@ test("term.screen.rows is answered only by the answer that names its correlation
 // with that reason, the session shows no error, and the read waits no longer, so a later reply under the same cids answers no read.
 test("term.screen.rows rejects with the reason of the sidecar refusal of its range", { timeout: 10000 }, async () => {
   const terminal = await rowsTerminal();
-  const reading = terminal.rows({ from: 0, count: 3 });
+  const reading = terminal.rows({ screen: "primary", from: 0, count: 3 });
   reading.catch(() => {});
   await terminal.requested(0, 3);
   const reason = "screen.read from 0 count 3 is outside the retained rows 5 to 40";
@@ -7539,7 +7614,7 @@ test("term.screen.rows rejects with the reason of the sidecar refusal of its ran
 // A sidecar failure ends a waiting range read.
 test("term.screen.rows ends a waiting read at a sidecar failure", { timeout: 10000 }, async () => {
   const terminal = await rowsTerminal();
-  const waiting = terminal.rows({ from: 4, count: 2 });
+  const waiting = terminal.rows({ screen: "primary", from: 4, count: 2 });
   await terminal.requested(4, 2);
   terminal.sidecar.triggerFailure("test-session", "the service exited");
   await assert.rejects(waiting, { message: "the sidecar ended before it answered: the service exited" },
