@@ -66,3 +66,14 @@ test("content-frame catalog accepts resize timing and host surface fields and re
   assert.equal(validate({ ...published, resizeCount: 1.5 }), false);
   assert.equal(validate({ ...published, unlisted: true }), false);
 });
+
+test("the catalog declares the program clipboard request that the clipboard.program setting refuses, with its operation and policy (P40)", () => {
+  const event = catalog.events["plugin.term.clipboard.refused"];
+  assert.ok(event, "plugin.term.clipboard.refused is declared");
+  assert.equal(event.level, "info");
+  const validate = new Ajv2020({ allErrors: true }).compile(event.fields);
+  assert.equal(validate({ operation: "store", policy: "deny" }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ operation: "query", policy: "write" }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ operation: "paste", policy: "deny" }), false, "an operation other than store or query is refused");
+  assert.equal(validate({ operation: "store" }), false, "a record without policy is refused");
+});
