@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P54-1: `term.screen.rows` requires `screen` (`primary` or `alternate`), refuses a read without it before any request and sends it to the sidecar; `term.session` keeps `scrollback.dropped`, `alternate {active, history, dropped}` and `foreground {pid, command, cwd}` from the sidecar; the descriptions of `term.screen.read` and `term.screen.rows` state their read mode of core `docs/spec/terminal-read.md`, its use and what it cannot see.
 - P52: The descriptions of `term.screen.read`, `term.screen.rows` and `term.scrollback.set` state that the screen read follows the viewport and the alternate screen, what row `from` counts and that the range read does not move the viewport, and that the viewport offset does not scroll a program on the alternate screen.
 - P51: The params of `term.screen.rows` declare `from` and `count` as integers without `required`, `minimum` and `maximum`, which the manifest reader of core refuses; a manifest test judges that every exposure schema uses only `type`, `properties`, `items` and `enum`. Red: the test failed on the four keywords. Green: `pnpm test` passes 360 of 360.
 - P50: Each `term.screen.rows` read sends one correlation identifier, and the answer that names it ends the read; the refusal of a range outside the retained rows rejects the command with `term.screen.rows: invalidParams: <reason>` and sets no error of `term.session`. Red: three of the five range tests failed. Green: `pnpm test` passes 359 of 359.

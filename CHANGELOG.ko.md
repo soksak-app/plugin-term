@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P54-1: `term.screen.rows` 가 `screen`(`primary` 나 `alternate`)을 요구해 그것 없는 읽기를 요청 전에 거절하고 그것을 sidecar 에 보낸다. `term.session` 이 sidecar 의 `scrollback.dropped`, `alternate {active, history, dropped}`, `foreground {pid, command, cwd}` 를 보관한다. `term.screen.read` 와 `term.screen.rows` 의 설명이 core `docs/spec/terminal-read.md` 의 읽기 mode, 그 쓰임, 그것이 보지 못하는 것을 말한다.
 - P52: `term.screen.read`, `term.screen.rows`, `term.scrollback.set` 의 설명이 screen read 가 viewport 와 alternate screen 을 따른다는 것, `from` 이 세는 행과 범위 read 가 viewport 를 움직이지 않는다는 것, viewport offset 이 alternate screen 의 program 을 scroll 하지 않는다는 것을 말한다.
 - P51: `term.screen.rows` 의 params 는 core 의 manifest reader 가 거절하는 `required`, `minimum`, `maximum` 없이 `from` 과 `count` 를 정수로 선언한다. manifest 시험이 모든 exposure schema 가 `type`, `properties`, `items`, `enum` 만 쓰는지 판정한다. Red: 시험이 keyword 네 개로 실패했다. Green: `pnpm test` 가 360 시험 중 360 개를 통과한다.
 - P50: 각 `term.screen.rows` read 는 correlation identifier 하나를 보내고, 그것을 이름 붙인 답이 read 를 끝낸다. 보유한 행 밖의 범위의 거절은 명령을 `term.screen.rows: invalidParams: <reason>` 로 reject 하고 `term.session` 의 오류를 두지 않는다. Red: 범위 시험 다섯 개 중 세 개가 실패했다. Green: `pnpm test` 가 359 시험 중 359 개를 통과한다.
