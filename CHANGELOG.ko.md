@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P42: view는 scrollbar thumb을 track에 상대적인 CSS로 배치한다. 높이는 `max(16px, P%)`, top은 `min(calc(100% - max(16px, P%)), Q%)`이며 `rows`와 `scrollback`에서 정한다. 배치에 사각형을 읽지 않고, `state` event가 행 수를 바꾸면 thumb을 다시 그린다. 최신 출력에서 크기나 행 수가 바뀐 뒤에도 thumb은 track 맨 아래에서 끝난다. Red: 행 변경 test가 `['300px', '300px']`로 실패했다. Green: terminal과 page test의 `node --test`가 234개 중 234개 통과한다.
 - P40: 설정 `clipboard.program`은 `deny`, `write`, `allow`를 받고 기본값은 `write`다. 터미널 안의 프로그램은 OSC 52로 클립보드에 쓰고 그것을 읽지 않으며, 저장된 값 `deny`와 `allow`는 그 뜻을 유지한다. 설정이 거절한 store나 query는 `term.session`의 오류를 정하지 않는다. view는 `operation`과 `policy`를 담은 event `plugin.term.clipboard.refused`를 쓰고, 거절된 query에는 여전히 `clipboard.reject`로 답한다. Red: 기본 store 시험이 `terminal input failed: program clipboard store denied by policy`로 실패했다. Green: `pnpm test`가 321개 중 321개 통과한다.
 - P31: term view의 window check가 이 repository에서 실행된다: `package.json`이 core 0.0.42의 `@soksak/window-check` release file을 development dependency로 이름 짓고, `pnpm-workspace.yaml`이 package가 이름 짓는 release URL과 `@parcel/watcher`의 build script를 허용하고, `e2e/term-view.test.mjs`가 view의 process 계약과 frame 계약을 검사하고, `make test-app`이 `pnpm exec sok-test-app`을 실행하고(local 전용, workflow 없음), `test/window-checks.test.mjs`가 선언을 검사한다. `pnpm test`가 316개 test를 통과한다. core 0.0.41에 대한 `make test-app` 실행은 아직 검증하지 않았다.
 - P39: version은 0.0.16이고, P38를 `engines.soksak` `^0.0.41`로 release한다.
