@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P50: Each `term.screen.rows` read sends one correlation identifier, and the answer that names it ends the read; the refusal of a range outside the retained rows rejects the command with `term.screen.rows: invalidParams: <reason>` and sets no error of `term.session`. Red: three of the five range tests failed. Green: `pnpm test` passes 359 of 359.
 - P49: `events.json` declares `plugin.term.screen.rows.unmatched` (class `io`, level `debug`, with `from` and `count`), so `make check` passes again. Red: the catalog test failed with `plugin.term.screen.rows.unmatched is declared`. Green: it passes.
 - P48: The command `term.screen.rows` returns the retained screen rows from `from`, `count` of them (1 to 200), with their cell rows and the plain text of each row, through the sidecar request `screen.read {from, count}`; it refuses a `from` below 0 or a `count` outside 1 to 200 before any request, a `screen.rows` event of another range does not answer a waiting read, and a sidecar failure ends a waiting read. Red: 5 of 357 tests failed on the page of main. Green: `pnpm test` passes 357 of 357.
 - P47: The copy of the shared terminal state cases of core equals core `docs/spec/cases/terminal-state/osc133.json` again, with the mark `P` and its two cases; the page passes them unchanged.

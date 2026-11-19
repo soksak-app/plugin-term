@@ -1241,7 +1241,8 @@ function createFakeSidecar({ delay = () => null, answers = true, watchAnswers = 
       if (answers && cids.length > 0) for (const handler of listeners.get(id) ?? []) {
         if (body.operation === "screen.watch") {
           if (watchAnswers) handler({ event: "screen.watching", enabled: body.enabled }, cids);
-        } else handler({ ack: true }, cids);
+          // A range read is answered only by its screen.rows event or its refusal, which the test sends.
+        } else if (!(body.operation === "screen.read" && body.from !== undefined)) handler({ ack: true }, cids);
       }
       return Promise.resolve();
     },

@@ -1647,16 +1647,32 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   // pty.pending requests in the order that they were sent, so the next answer is the answer of the first of them.
   const replacedPtyReads = [];
 
-  // The row-range reads of terminal.screen.rows, each waiting for the screen.rows event of its own range.
+  // The range reads of term.screen.rows. Each read sends one correlation identifier, and the sidecar names it in its answer:
+  // the screen.rows event of the range, or the refusal {error, reason} of a range outside the retained rows.
   const rangeReads = new Set();
+  let rangeReadSequence = 0;
   const rangeRead = (from, count) => new Promise((resolve, reject) => {
-    const entry = { from, count, resolve, reject };
+    const entry = { from, count, cid: `${unansweredPrefix}-screen-rows-${++rangeReadSequence}`, resolve, reject };
     rangeReads.add(entry);
-    terminal.send(id, { operation: "screen.read", from, count }).catch((error) => {
+    terminal.send(id, { operation: "screen.read", from, count }, [entry.cid]).catch((error) => {
       rangeReads.delete(entry);
       reject(error);
     });
   });
+  // Ends the range read that the answer names, and returns whether one did.
+  const answerRangeRead = (body, cids) => {
+    const entry = [...rangeReads].find((read) => cids.includes(read.cid));
+    if (entry === undefined) return false;
+    rangeReads.delete(entry);
+    if (body.error) {
+      entry.reject(new Error(`term.screen.rows: ${body.error}: ${body.reason ?? "screen.read failed"}`));
+    } else if (body.event !== "screen.rows" || body.from !== entry.from || body.count !== entry.count || !Array.isArray(body.rows)) {
+      entry.reject(new Error(`term.screen.rows received a mismatched answer: ${JSON.stringify({ event: body.event, from: body.from, count: body.count })}`));
+    } else {
+      entry.resolve(body.rows);
+    }
+    return true;
+  };
 
   // Ends each wait for a reply of the sidecar: the reads of the screen, the row ranges and the pty.pending measurement with error.
   // The acknowledgement of screen.watch ends where its state changes.
@@ -1707,6 +1723,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     }
     // The regions detach at the removal; an event after it would operate on a detached region.
     if (closing.aborted) return;
+    if (answerRangeRead(body, cids ?? [])) return;
     if (body.event === "exit") {
       screenWatchConnected = false;
       screenWatchEnabled = false;
@@ -1820,13 +1837,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     } else if (body.event === "screen.watching") {
       // A late acknowledgement of an ended transition owns no current state.
     } else if (body.event === "screen.rows") {
-      const entry = [...rangeReads].find((read) => read.from === body.from && read.count === body.count);
-      if (entry) {
-        rangeReads.delete(entry);
-        entry.resolve(body.rows);
-      } else {
-        runtime.log.debug("screen.rows.unmatched", { from: body.from, count: body.count });
-      }
+      runtime.log.debug("screen.rows.unmatched", { from: body.from, count: body.count });
     } else if (body.event === "screen") {
       if (body.base === false && screenReadAwaited) {
         runtime.log.debug("screen.refused", { number: body.number, previous: body.previous });
