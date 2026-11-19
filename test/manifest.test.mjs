@@ -109,6 +109,29 @@ test("the terminal exposes its session, input, preedit, paste, file drop, screen
   assert.deepEqual(names("element"), ["term.scrollbar", "term.scrollbar.thumb", "term.view"]);
 });
 
+// A schema of an exposure entry is the JSON Schema subset of core docs/spec/exposure.md (entry fields): the keywords type,
+// properties, items and enum; the reader of core refuses the manifest at install for any other keyword.
+test("the schemas of the exposure entries use only the keywords that core reads (P51)", () => {
+  const KEYWORDS = new Set(["type", "properties", "items", "enum"]);
+  const found = [];
+  const walk = (schema, where) => {
+    if (schema === null || typeof schema !== "object" || Array.isArray(schema)) return;
+    for (const key of Object.keys(schema)) if (!KEYWORDS.has(key)) found.push(`${where}: ${key}`);
+    for (const [name, member] of Object.entries(schema.properties ?? {})) walk(member, `${where}.${name}`);
+    if (schema.items !== undefined) walk(schema.items, `${where}[]`);
+  };
+  for (const [file, declaration] of [["plugin.json", manifest], ["diagnostics.json", diagnostics]]) {
+    for (const [kind, entries] of Object.entries(declaration.exposes ?? {})) {
+      for (const entry of entries) {
+        for (const field of ["params", "result", "schema"]) {
+          if (entry[field] !== undefined) walk(entry[field], `${file} ${kind} ${entry.name} ${field}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(found, []);
+});
+
 test("the context menu of the surface copies and pastes", () => {
   assert.deepEqual(manifest.surface.menu, [
     { command: "term.copy", title: "복사" },
