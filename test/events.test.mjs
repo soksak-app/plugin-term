@@ -67,6 +67,15 @@ test("content-frame catalog accepts resize timing and host surface fields and re
   assert.equal(validate({ ...published, unlisted: true }), false);
 });
 
+test("the catalog declares the screen.rows reply that matches no waiting range read, with its range (P49)", () => {
+  const event = catalog.events["plugin.term.screen.rows.unmatched"];
+  assert.ok(event, "plugin.term.screen.rows.unmatched is declared");
+  assert.equal(event.level, "debug");
+  const validate = new Ajv2020({ allErrors: true }).compile(event.fields);
+  assert.equal(validate({ from: 5, count: 2 }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ from: 5 }), false, "a record without count is refused");
+});
+
 test("the catalog declares the program clipboard request that the clipboard.program setting refuses, with its operation and policy (P40)", () => {
   const event = catalog.events["plugin.term.clipboard.refused"];
   assert.ok(event, "plugin.term.clipboard.refused is declared");
