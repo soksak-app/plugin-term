@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P46: status `term.activity`가 core `docs/spec/terminal-state.md#activity`가 정한 대로 `term.state`와 그 exit code에서 얻은 터미널의 core activity level을 publish하며, level이 바뀔 때만 알린다. 그 선언 `activity: true`는 F982를 담은 core release를 기다린다(P46-1).
 - P44: status `term.state`가 core `docs/spec/terminal-state.md`의 터미널 상태를 보여 준다: view는 session이 열리거나 다시 attach될 때마다 `shell.state.read`를 한 번 읽고 각 `shell.state` 변화 event를 따른다. 다른 형태의 event나 답은 session error이며 값은 유지된다. 새 test 17개는 변경하지 않은 page에서 `the status term.state is not declared`로 실패했고 지금 통과하며, `pnpm test`는 340개 중 340개 통과한다. 이 변경은 alacritty S190을 담은 sidecar release를 pin해야 사용자에게 닿는다(P45).
 - P42: view는 scrollbar thumb을 track에 상대적인 CSS로 배치한다. 높이는 `max(16px, P%)`, top은 `min(calc(100% - max(16px, P%)), Q%)`이며 `rows`와 `scrollback`에서 정한다. 배치에 사각형을 읽지 않고, `state` event가 행 수를 바꾸면 thumb을 다시 그린다. 최신 출력에서 크기나 행 수가 바뀐 뒤에도 thumb은 track 맨 아래에서 끝난다. Red: 행 변경 test가 `['300px', '300px']`로 실패했다. Green: terminal과 page test의 `node --test`가 234개 중 234개 통과한다.
 - P40: 설정 `clipboard.program`은 `deny`, `write`, `allow`를 받고 기본값은 `write`다. 터미널 안의 프로그램은 OSC 52로 클립보드에 쓰고 그것을 읽지 않으며, 저장된 값 `deny`와 `allow`는 그 뜻을 유지한다. 설정이 거절한 store나 query는 `term.session`의 오류를 정하지 않는다. view는 `operation`과 `policy`를 담은 event `plugin.term.clipboard.refused`를 쓰고, 거절된 query에는 여전히 `clipboard.reject`로 답한다. Red: 기본 store 시험이 `terminal input failed: program clipboard store denied by policy`로 실패했다. Green: `pnpm test`가 321개 중 321개 통과한다.

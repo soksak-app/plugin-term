@@ -7429,10 +7429,10 @@ async function activityTerminal() {
 for (const { name, events } of STATE_CASES) {
   test(`term.activity follows the state and the exit code: ${name}`, { timeout: 10000 }, async () => {
     const terminal = await activityTerminal();
-    assert.equal(term.activity(), null, "the activity before the first change");
+    assert.equal(terminal.activity(), null, "the activity before the first change");
     for (const change of events) {
       terminal.emit({ event: "shell.state", ...change });
-      assert.equal(term.activity(), expectedActivity({ state: change.to, exit: change.exit }),
+      assert.equal(terminal.activity(), expectedActivity({ state: change.to, exit: change.exit }),
         `the activity after the change ${change.sequence}`);
     }
   });
@@ -7441,7 +7441,7 @@ for (const { name, events } of STATE_CASES) {
 test("term.activity notifies its watchers only when the level changes", { timeout: 10000 }, async () => {
   const terminal = await activityTerminal();
   const seen = [];
-  term.activityStatus.watchFn((value) => seen.push(value));
+  terminal.activityStatus.watchFn((value) => seen.push(value));
   terminal.emit({ event: "shell.state", from: null, to: "idle", source: "osc133", sequence: 1, exit: null });
   terminal.emit({ event: "shell.state", from: "idle", to: "running", source: "osc133", sequence: 2, exit: null });
   terminal.emit({ event: "shell.state", from: "running", to: "exited", source: "osc133", sequence: 3, exit: 2 });
