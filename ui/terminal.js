@@ -44,7 +44,8 @@ function cidsOf(event) {
 const CURSOR_SHAPES = new Set(["block", "underline", "beam"]);
 const CURSOR_BLINK_MODES = new Set(["Never", "Off", "On", "Always"]);
 const CURSOR_UNFOCUSED = new Set(["hollow", "solid", "underline", "beam", "unchanged"]);
-const PROGRAM_CLIPBOARD_POLICIES = new Set(["deny", "allow"]);
+// clipboard.program: deny refuses a store and a query of a program, write admits only a store, and allow admits both.
+const PROGRAM_CLIPBOARD_POLICIES = new Set(["deny", "write", "allow"]);
 const NOTIFICATION_POLICIES = new Set(["tab", "system"]);
 const DEFAULT_CURSOR = Object.freeze({
   row: 0, col: 0, shape: "block", visible: true, blinking: false, focused: false,
@@ -367,6 +368,33 @@ function screenRow(cells) {
 const ATTRIBUTE_FLAGS = [[0x01, "bold"], [0x02, "dim"], [0x04, "italic"], [0x08, "underline"], [0x10, "blink"], [0x20, "inverse"],
   [0x40, "hidden"], [0x80, "strikethrough"]];
 
+// The states that the sidecar reports and their sources (core docs/spec/terminal-state.md#states).
+const TERMINAL_STATES = new Set(["idle", "running", "exited"]);
+const TERMINAL_STATE_SOURCES = new Set(["osc133"]);
+/**
+ * Returns the core activity level of a terminal state, or null for no activity (core docs/spec/terminal-state.md#activity):
+ * an exited command reports a failure only with a nonzero exit code.
+ */
+function terminalActivity({ state, exit }) {
+  if (state === "idle") return "idle";
+  if (state === "running") return "running";
+  if (state === "exited" && exit !== null && exit !== 0) return "failed";
+  return null;
+}
+/** Returns why a terminal state value of a change event or a read reply breaks the contract, or null when it holds. */
+function terminalStateProblem({ state, source, sequence, exit }, change) {
+  if (!Number.isSafeInteger(sequence) || sequence < (change ? 1 : 0)) return "sequence";
+  if (state === null) {
+    if (change) return "state";
+    return source === null && sequence === 0 && exit === null ? null : "a read without a state";
+  }
+  if (!TERMINAL_STATES.has(state)) return "state";
+  if (!TERMINAL_STATE_SOURCES.has(source)) return "source";
+  if (sequence === 0) return "sequence";
+  if (state === "exited") return exit === null || (Number.isInteger(exit) && exit >= 0 && exit <= 255) ? null : "exit";
+  return exit === null ? null : "exit";
+}
+
 export async function startTerminal({ id, view, attachImage, detachRegions, sidecar, expose, theme,
   // Aborts when the removal of the surface starts, before its regions are detached (context.closing). Required.
   closing,
@@ -407,7 +435,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     throw new TypeError(`startTerminal requires origin {directory} with a path or null, found ${JSON.stringify(origin)}`);
   }
   // 공개 status 마다 값이 바뀔 때 호출할 함수
-  const watchers = { session: new Set(), screen: new Set(), compose: new Set(), cursor: new Set() };
+  const watchers = { session: new Set(), screen: new Set(), compose: new Set(), cursor: new Set(), state: new Set(), activity: new Set() };
   const changed = (name) => {
     for (const fn of watchers[name]) fn(read[name]());
   };
@@ -446,6 +474,19 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     compose: { text: "", markedRange: null, selectedRange: null, replacementRange: null, attributed: false },
     theme: "dark",
   };
+  // The terminal state of the session (core docs/spec/terminal-state.md): the value before the first read, then the read reply
+  // and each change event.
+  const STATE_BEFORE_READ = Object.freeze({ state: null, source: null, sequence: 0, exit: null });
+  let terminalState = STATE_BEFORE_READ;
+  // Sets the terminal state and notifies the watchers of the state, and of the activity when its level changes.
+  const setTerminalState = (next) => {
+    const before = terminalActivity(terminalState);
+    terminalState = next;
+    changed("state");
+    if (terminalActivity(next) !== before) changed("activity");
+  };
+  // The session whose state terminalState holds.
+  let terminalStateSession = null;
   let screen = [];
   // The frame of the latest screen event, which term.screen.read returns with the rows.
   let screenFrame = null;
@@ -490,6 +531,8 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     screen: () => screen,
     compose: () => compose,
     cursor: () => cursor,
+    state: () => terminalState,
+    activity: () => terminalActivity(terminalState),
   };
 
   // 터미널 사이드카가 이 표면의 terminal 세션을 실행한다. 보내는 모든 메시지는 본문 전체와 결과를, 받는 모든 이벤트는 본문 전체를
@@ -790,8 +833,15 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     if (!Number.isInteger(requestId) || requestId < 0) throw new Error("clipboard query requestId is invalid");
     await terminal.send(id, { operation: "clipboard.reject", requestId, reason });
   };
+  // A request that the setting refuses is no input failure, so it is recorded and not shown as an error.
+  const recordClipboardRefusal = (operation) => {
+    runtime.log.info("clipboard.refused", { operation, policy: programClipboardPolicy });
+  };
   const handleClipboardStore = async (body) => {
-    if (programClipboardPolicy !== "allow") throw new Error("program clipboard store denied by policy");
+    if (programClipboardPolicy === "deny") {
+      recordClipboardRefusal("store");
+      return;
+    }
     if (body.selection !== "clipboard") throw new Error(`unsupported program clipboard target: ${String(body.selection)}`);
     if (typeof body.text !== "string") throw new Error("program clipboard store requires text");
     if (!clipboard || typeof clipboard.writeText !== "function") throw new Error("program clipboard store requires a clipboard capability");
@@ -800,6 +850,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   const handleClipboardQuery = async (body) => {
     if (!Number.isInteger(body.requestId) || body.requestId < 0) throw new Error("clipboard query requestId is invalid");
     if (programClipboardPolicy !== "allow") {
+      recordClipboardRefusal("query");
       await rejectClipboardQuery(body.requestId, "program clipboard query denied by policy");
       return;
     }
@@ -1040,6 +1091,13 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
       settleUnanswered();
       enqueueInput({ type: "input", actions: [{ type: "focus", focused: nativeFocused }], preedit: compose })
         .catch((error) => reportInputError(error));
+      // A persistent session keeps its state while no page shows it, so the page reads the state each time the session
+      // opens or is attached again; a new session starts again from the value before the first read.
+      if (terminalStateSession !== session.sessionId) {
+        terminalStateSession = session.sessionId;
+        setTerminalState(STATE_BEFORE_READ);
+      }
+      terminal.send(id, { operation: "shell.state.read" }).catch((error) => reportInputError(error));
     }
     flushInputQueue();
   };
@@ -1299,14 +1357,6 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   };
   view.addEventListener("wheel", scrollWheel, { passive: false });
 
-  // 스크롤바는 터미널이 기록을 보관하는 동안 보인다(docs/spec/terminal-runtime.md).
-  const thumbGeometry = () => {
-    const { rows, scrollback: { offset, history } } = session;
-    const height = scrollbar.track.getBoundingClientRect().height;
-    const size = Math.min(height, Math.max(16, height * rows / (rows + history)));
-    const top = Math.min(height - size, height * (history - offset) / (rows + history));
-    return { height, size, top };
-  };
   // 스크롤바 설정(docs/spec/terminal-runtime.md). 잘못된 값은 입력 오류로 보고하고 적용하지 않는다.
   const COLOR = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
   const scrollbarStyle = { track: "terminal", thumb: "#8f98a080", width: 10, shape: "rounded" };
@@ -1363,13 +1413,17 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     scrollbar.thumb.style.background = scrollbarStyle.thumb;
     scrollbar.thumb.style.borderRadius = scrollbarStyle.shape === "square" ? "0px" : "999px";
   };
+  // The scrollbar is shown while the terminal keeps history. The thumb is placed in CSS relative to the track, so a change of
+  // the size of the track moves it without a new draw, and the view draws it again when rows, offset or history changes
+  // (docs/spec/acceptance.md).
   const drawScrollbar = () => {
     if (!scrollbar) return;
-    scrollbar.track.hidden = session.scrollback.history === 0;
+    const { rows, scrollback: { offset, history } } = session;
+    scrollbar.track.hidden = history === 0;
     if (scrollbar.track.hidden) return;
-    const { size, top } = thumbGeometry();
-    scrollbar.thumb.style.height = `${size}px`;
-    scrollbar.thumb.style.top = `${top}px`;
+    const size = `max(16px, ${100 * rows / (rows + history)}%)`;
+    scrollbar.thumb.style.height = size;
+    scrollbar.thumb.style.top = `min(calc(100% - ${size}), ${100 * (history - offset) / (rows + history)}%)`;
   };
   // 손잡이를 끄는 동안 포인터 아래의 오프셋으로 선언된 명령을 실행한다.
   let thumbDrag = null;
@@ -1377,8 +1431,10 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     if (event.button !== 0 || thumbDrag) return;
     event.preventDefault();
     event.stopPropagation();
-    const { top } = thumbGeometry();
-    thumbDrag = { pointerId: event.pointerId, grab: event.clientY - scrollbar.track.getBoundingClientRect().top - top, sent: null };
+    // clientY and the rectangles of the thumb and the track share the CSS pixels of the view document: the root view of the
+    // surface keeps page zoom 1 and the view sets no CSS zoom, because the terminal follows the text size with its font size
+    // (docs/spec/acceptance.md). The grab is the distance from the top of the thumb to the pointer.
+    thumbDrag = { pointerId: event.pointerId, grab: event.clientY - scrollbar.thumb.getBoundingClientRect().top, sent: null };
     // 끄는 동안 손잡이는 쥔 손 포인터를 보인다.
     scrollbar.thumb.dataset.dragging = "";
     scrollbar.thumb.setPointerCapture(event.pointerId);
@@ -1387,9 +1443,9 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
     if (!thumbDrag || event.pointerId !== thumbDrag.pointerId) return;
     event.preventDefault();
     const { rows, scrollback: { history } } = session;
-    const { height } = thumbGeometry();
-    const top = event.clientY - scrollbar.track.getBoundingClientRect().top - thumbDrag.grab;
-    const offset = Math.min(history, Math.max(0, Math.round(history - top / height * (rows + history))));
+    const track = scrollbar.track.getBoundingClientRect();
+    const top = event.clientY - track.top - thumbDrag.grab;
+    const offset = Math.min(history, Math.max(0, Math.round(history - top / track.height * (rows + history))));
     if (offset === thumbDrag.sent) return;
     thumbDrag.sent = offset;
     observeInput(Promise.resolve().then(() => expose.run("term.scrollback.set", { offset })));
@@ -1719,6 +1775,8 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
         exited: false,
       };
       resolveError("state");
+      // A state event follows a resize and carries the rows, which the thumb shows.
+      drawScrollbar();
       if (body.cursor !== undefined) applyCursor(body.cursor, { ...body.cursor, frame: null, render: null, caret: null, preedit: body.cursor.preedit ?? null });
       openSessionGate("state");
     } else if (body.event === "session") {
@@ -2063,6 +2121,16 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
         setError("notification", `terminal notification failed: ${error.message}`);
         reportSurfaceError(error);
       }
+    } else if (body.event === "shell.state" || body.event === "shell.state.current") {
+      const next = body.event === "shell.state"
+        ? { state: body.to, source: body.source, sequence: body.sequence, exit: body.exit }
+        : { state: body.state, source: body.source, sequence: body.sequence, exit: body.exit };
+      const problem = terminalStateProblem(next, body.event === "shell.state");
+      if (problem !== null) {
+        reportInputError(new Error(`invalid terminal state from sidecar: ${problem}: ${JSON.stringify(body)}`));
+        return;
+      }
+      setTerminalState(next);
     } else if (body.event === "vendor.shell.state") {
       const markers = new Set(["prompt.start", "prompt.end", "command.start", "command.finished"]);
       if (!markers.has(body.marker) || !Array.isArray(body.params) || body.params.some((value) => typeof value !== "string")) {
@@ -2212,6 +2280,8 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
       expose.status("term.screen", currentScreen, watchScreen),
       expose.status("term.compose", read.compose, watch("compose")),
       expose.status("term.cursor", read.cursor, watch("cursor")),
+      expose.status("term.state", read.state, watch("state")),
+      expose.status("term.activity", read.activity, watch("activity")),
       expose.command("term.input", async ({ bytes }) => {
         if (typeof bytes !== "string") throw new Error("term.input requires bytes");
         try {

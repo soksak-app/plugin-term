@@ -633,6 +633,36 @@
       },
       "description": "An explicitly observed content-box size after ResizeObserver and the next animation frame, with the first and latest resize times, resize count, frame time, and runtime surface identifier in the view document clock."
     },
+    "plugin.term.clipboard.refused": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "info",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "store",
+              "query"
+            ]
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "deny",
+              "write"
+            ]
+          }
+        },
+        "required": [
+          "operation",
+          "policy"
+        ]
+      },
+      "description": "The clipboard.program setting refused an OSC 52 request of a program; operation is the store or query that was refused and policy is the setting value, and a refused query is answered with clipboard.reject."
+    },
     "plugin.term.error": {
       "layer": "plugin",
       "class": "lifecycle",

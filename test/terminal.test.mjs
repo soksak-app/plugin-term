@@ -1853,7 +1853,8 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
   const fakeSidecar = createFakeSidecar();
   const fakeExpose = createFakeExpose();
   const track = Object.assign(createFakeView(), { style: {}, hidden: false });
-  const thumb = Object.assign(createFakeView(), { style: {} });
+  // The thumb reports the rectangle of its place on the 600 pixel track: height 300 at top 150.
+  const thumb = Object.assign(createFakeView(), { style: {}, getBoundingClientRect: () => ({ left: 792, top: 150, width: 6, height: 300 }) });
   await startTerminal({
     view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function,
     sidecar: fakeSidecar, expose: fakeExpose, scrollbar: { track, thumb },
@@ -1863,7 +1864,7 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
   fakeSidecar.getMessages().length = 0;
   assert.equal(track.hidden, true, "the scrollbar is hidden without history");
 
-  // 50행, 기록 50줄, 오프셋 25. 600 픽셀 트랙에서 손잡이는 높이 300, 위치 150 이다.
+  // 50 rows, 50 lines of history and offset 25: the thumb is half of the track high and starts at a quarter of it.
   const screen = (offset) => fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
     cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset, history: 50 } });
   screen(25);
@@ -1872,7 +1873,7 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], background: "#102030",
     cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 25, history: 50 } });
   assert.equal(track.style.background, "#102030");
-  assert.deepEqual([thumb.style.height, thumb.style.top], ["300px", "150px"]);
+  assert.deepEqual([thumb.style.height, thumb.style.top], ["max(16px, 50%)", "min(calc(100% - max(16px, 50%)), 25%)"]);
 
   thumb._trigger("pointerdown", { button: 0, pointerId: 4, clientX: 795, clientY: 160 });
   thumb._trigger("pointermove", { pointerId: 4, clientX: 795, clientY: 10 });
@@ -1886,10 +1887,51 @@ test("the scrollbar shows the scrollback position and dragging its thumb moves t
   // 가장 새 출력에서도 기록이 있으면 보이며 손잡이는 트랙 맨 아래에 있다.
   screen(0);
   assert.equal(track.hidden, false);
-  assert.deepEqual([thumb.style.height, thumb.style.top], ["300px", "300px"]);
+  assert.deepEqual([thumb.style.height, thumb.style.top], ["max(16px, 50%)", "min(calc(100% - max(16px, 50%)), 50%)"]);
   fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""], cursor: { col: 0, row: 0, visible: true, focused: false, shape: "Block", blinking: false },
     scrollback: { offset: 0, history: 0 } });
   assert.equal(track.hidden, true, "the scrollbar is hidden without history");
+});
+
+test("the scrollbar thumb ends at the bottom of the track at the newest output after the size and the rows change", async () => {
+  FakeResizeObserver.reset();
+  const fakeSidecar = createFakeSidecar();
+  let trackHeight = 600;
+  const track = Object.assign(createFakeView(), { style: {}, hidden: false, getBoundingClientRect: () => ({ left: 790, top: 0, width: 10, height: trackHeight }) });
+  const thumb = Object.assign(createFakeView(), { style: {} });
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function,
+    sidecar: fakeSidecar, expose: createFakeExpose(), scrollbar: { track, thumb },
+    window: { TextEncoder },
+  });
+  openSession(fakeSidecar);
+  // The history is at its limit and the terminal shows the newest output, so later events keep offset 0 and history 50.
+  const screen = () => fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 0, history: 50 } });
+  screen();
+  // The card becomes smaller: the track is 400 pixels high and the terminal has 30 rows.
+  trackHeight = 400;
+  fakeSidecar.triggerEvent("test-session", { event: "state", sessionId: "s1", cols: 100, rows: 30, cellWidth: 8, cellHeight: 16 });
+  screen();
+  // 30 of 80 rows are visible: the thumb is 37.5% of the track high and starts at 62.5%, so it ends at the bottom.
+  assert.deepEqual([thumb.style.height, thumb.style.top], ["max(16px, 37.5%)", "min(calc(100% - max(16px, 37.5%)), 62.5%)"]);
+});
+
+test("the scrollbar thumb is placed relative to the track without a measured rectangle", async () => {
+  FakeResizeObserver.reset();
+  const fakeSidecar = createFakeSidecar();
+  const track = Object.assign(createFakeView(), { style: {}, hidden: false, getBoundingClientRect: () => { throw new Error("the placement read the track rectangle"); } });
+  const thumb = Object.assign(createFakeView(), { style: {}, getBoundingClientRect: () => { throw new Error("the placement read the thumb rectangle"); } });
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function,
+    sidecar: fakeSidecar, expose: createFakeExpose(), scrollbar: { track, thumb },
+    window: { TextEncoder },
+  });
+  openSession(fakeSidecar);
+  fakeSidecar.triggerEvent("test-session", { event: "screen", lines: [""],
+    cursor: { col: 0, row: 0, visible: false, focused: false, shape: "Block", blinking: false }, scrollback: { offset: 10, history: 150 } });
+  // 50 of 200 rows are visible and 140 lines lie above the viewport: height 25% and top 70%.
+  assert.deepEqual([track.hidden, thumb.style.height, thumb.style.top], [false, "max(16px, 25%)", "min(calc(100% - max(16px, 25%)), 70%)"]);
 });
 
 test("scrollbar settings set the track background, thumb color, width, and shape", async () => {
@@ -2176,6 +2218,74 @@ test("allowed program clipboard handles only text through the host capability", 
   assert.deepEqual(fakeSidecar.getMessages().filter(({ body }) => body.operation === "clipboard.resolve").map(({ body }) => body), [
     { operation: "clipboard.resolve", requestId: 8, text: "from host" },
   ]);
+});
+
+// A program clipboard terminal whose outcomes (a clipboard write, a refusal record, an error of term.session) arrive in one watched
+// list in the order they happen, so a test waits for the first outcome of an OSC 52 request whichever it is.
+async function programClipboardTerminal(policy) {
+  FakeResizeObserver.reset();
+  const fakeSidecar = createFakeSidecar();
+  const fakeExpose = createFakeExpose();
+  const outcomes = watchedList();
+  const lines = [];
+  const log = recorder(lines);
+  const runtime = { log: Object.fromEntries(Object.entries(log).map(([level, write]) => [level, level === "levels" ? write : (name, fields, options) => {
+    write(name, fields, options);
+    if (name === "clipboard.refused") outcomes.push(["refused", lines.at(-1)[1], level]);
+  }])) };
+  const settings = policy === undefined ? SHELL_SETTINGS : { read: () => ({ ...SHELL_SETTINGS.read(), "clipboard.program": policy }), on: () => () => {} };
+  const clipboard = {
+    read: async (type) => { assert.equal(type, "text"); return "from host"; },
+    writeText: async (text) => { outcomes.push(["write", text]); },
+  };
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function,
+    sidecar: fakeSidecar, expose: fakeExpose, settings, clipboard, runtime,
+    window: { TextEncoder },
+  });
+  openSession(fakeSidecar);
+  let shown = fakeExpose.getStatus("term.session").readFn().error;
+  fakeExpose.getStatus("term.session").watchFn((value) => {
+    if (value.error !== undefined && value.error !== shown) outcomes.push(["error", value.error]);
+    shown = value.error;
+  });
+  return { fakeSidecar, fakeExpose, outcomes };
+}
+
+test("a program clipboard store under the default setting writes the clipboard and shows no error (P40)", { timeout: 10000 }, async () => {
+  const { fakeSidecar, fakeExpose, outcomes } = await programClipboardTerminal();
+  fakeSidecar.triggerEvent("test-session", { event: "clipboard.store", selection: "clipboard", text: "program copy" });
+  await outcomes.until(() => outcomes.length === 1);
+  assert.deepEqual(outcomes, [["write", "program copy"]]);
+  assert.equal(fakeExpose.getStatus("term.session").readFn().error, undefined);
+  assert.equal(terminalManifest.settings["clipboard.program"].default, "write");
+});
+
+test("a program clipboard store refused by the deny setting is recorded and shows no error (P40)", { timeout: 10000 }, async () => {
+  const { fakeSidecar, fakeExpose, outcomes } = await programClipboardTerminal("deny");
+  fakeSidecar.triggerEvent("test-session", { event: "clipboard.store", selection: "clipboard", text: "program copy" });
+  await outcomes.until(() => outcomes.length === 1);
+  assert.deepEqual(outcomes, [["refused", { operation: "store", policy: "deny" }, "info"]]);
+  assert.equal(fakeExpose.getStatus("term.session").readFn().error, undefined);
+});
+
+test("a program clipboard query under the write setting is rejected, recorded and shows no error (P40)", { timeout: 10000 }, async () => {
+  const { fakeSidecar, fakeExpose, outcomes } = await programClipboardTerminal("write");
+  fakeSidecar.triggerEvent("test-session", { event: "clipboard.query", requestId: 9, selection: "clipboard" });
+  await outcomes.until(() => outcomes.length === 1);
+  assert.deepEqual(outcomes, [["refused", { operation: "query", policy: "write" }, "info"]]);
+  await fakeSidecar.untilMessage((body) => body.operation === "clipboard.reject");
+  assert.deepEqual(fakeSidecar.getMessages().filter(({ body }) => body.operation.startsWith("clipboard.")).map(({ body }) => body), [
+    { operation: "clipboard.reject", requestId: 9, reason: "program clipboard query denied by policy" },
+  ]);
+  assert.equal(fakeExpose.getStatus("term.session").readFn().error, undefined);
+});
+
+test("a program clipboard store to an unsupported target under the default setting still shows its error (P40)", { timeout: 10000 }, async () => {
+  const { fakeSidecar, outcomes } = await programClipboardTerminal();
+  fakeSidecar.triggerEvent("test-session", { event: "clipboard.store", selection: "primary", text: "program copy" });
+  await outcomes.until(() => outcomes.length === 1);
+  assert.deepEqual(outcomes, [["error", "terminal input failed: unsupported program clipboard target: primary"]]);
 });
 
 test("user selection copy writes non-empty text independently of program clipboard policy", async () => {
@@ -5697,9 +5807,13 @@ test("region input is buffered in order until sidecar state opens the session", 
 
   // 사이드카가 state 이벤트로 세션을 연다
   fakeSidecar.triggerEvent("test-session", { event: "state", sessionId: "s1", cols: 100, rows: 50, cellWidth: 8, cellHeight: 16 });
-  await fakeSidecar.until(() => sessionMessages(fakeSidecar).length >= 3);
+  // The open session also reads its terminal state (core docs/spec/terminal-state.md#state-read), once.
+  const inputs = () => sessionMessages(fakeSidecar).filter(({ body }) => body.operation !== "shell.state.read");
+  await fakeSidecar.until(() => inputs().length >= 3);
 
-  messages = sessionMessages(fakeSidecar);
+  assert.equal(sessionMessages(fakeSidecar).filter(({ body }) => body.operation === "shell.state.read").length, 1,
+    "the open session reads its state once");
+  messages = inputs();
   assert.equal(messages.length, 3, "open and two inputs are sent after state");
   assert.deepEqual(messages[1].body.actions, [inputInsert("a")]);
   assert.deepEqual(messages[2].body.actions, [inputKey("Enter")]);
@@ -5785,8 +5899,10 @@ test("a sidecar rejection is reported without DOM-driven retry", async () => {
   fakeView.clientWidth = 600;
   fakeView.clientHeight = 300;
   FakeResizeObserver.triggerAll();
+  // The session that the state event opened reads its terminal state once (core docs/spec/terminal-state.md#state-read).
   messages = sessionMessages(fakeSidecar);
-  assert.equal(messages.length, 1, "DOM resize sends no sidecar message");
+  assert.deepEqual(messages.slice(1).map(({ body }) => body), [{ operation: "shell.state.read" }], "the open session reads its state");
+  assert.equal(messages.length, 2, "DOM resize sends no sidecar message");
 });
 
 test("persistent reconnect restores the session identity before a new raster is configured", async () => {
@@ -7220,24 +7336,146 @@ test("the focus that a reattached session reads does not hold the input that wai
   assert.deepEqual(sent, [[{ type: "focus", focused: false }], [inputKey("Enter")]]);
 });
 
-// term.screen.rows sends screen.read with a row range; the screen.rows event that answers it carries the rows, and the command
-// returns the rows with the plain text of each row.
-test("term.screen.rows sends a row range and returns the rows and their plain text", async () => {
+// The terminal state (core docs/spec/terminal-state.md). `test/fixtures/terminal-state-osc133.json` is the copy of core
+// `docs/spec/cases/terminal-state/osc133.json`; a change of the contract replaces the copy.
+const STATE_CASES = JSON.parse(readFileSync(new URL("./fixtures/terminal-state-osc133.json", import.meta.url), "utf8")).cases;
+const STATE_BEFORE_READ = { state: null, source: null, sequence: 0, exit: null };
+
+async function stateTerminal() {
   FakeResizeObserver.reset();
   const sidecar = createFakeSidecar();
   const expose = createFakeExpose();
   await startTerminal({
     view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
-    scale: 1, window: { ResizeObserver: FakeResizeObserver, TextEncoder, devicePixelRatio: 1 },
+    window: { TextEncoder },
   });
-  FakeResizeObserver.triggerAll();
+  openSession(sidecar);
+  const status = expose.getStatus("term.state");
+  assert.notEqual(status, undefined, "the status term.state is not declared");
+  const error = () => expose.getStatus("term.session").readFn().error;
+  const emit = (event) => sidecar.triggerEvent("test-session", event);
+  return { sidecar, expose, error, emit, state: () => status.readFn(), status };
+}
 
-  const rowsCommand = expose.getCommand("term.screen.rows");
-  assert(rowsCommand, "term.screen.rows command registered");
+for (const { name, events, read } of STATE_CASES) {
+  test(`term.state follows the read and the change events: ${name}`, { timeout: 10000 }, async () => {
+    const terminal = await stateTerminal();
+    assert.deepEqual(terminal.state(), STATE_BEFORE_READ, "the state before the first read");
+    await terminal.sidecar.untilMessage((body) => body.operation === "shell.state.read");
+    terminal.emit({ event: "shell.state.current", ...STATE_BEFORE_READ });
+    assert.deepEqual(terminal.state(), STATE_BEFORE_READ, "the state after the read of a session without a mark");
+    for (const change of events) {
+      terminal.emit({ event: "shell.state", ...change });
+      assert.deepEqual(terminal.state(), { state: change.to, source: change.source, sequence: change.sequence, exit: change.exit },
+        `the state after the change ${change.sequence}`);
+    }
+    assert.deepEqual(terminal.state(), read, "the state after the output equals the read of the case");
+    terminal.emit({ event: "shell.state.current", ...read });
+    assert.deepEqual(terminal.state(), read, "the read reply of the case");
+    assert.equal(terminal.error(), undefined, "a valid state reported an error");
+  });
+}
 
-  const reading = rowsCommand({ from: 4, count: 2 });
-  await sidecar.untilMessage((body) => body.operation === "screen.read" && body.from === 4 && body.count === 2);
-  sidecar.triggerEvent("test-session", {
+test("term.state notifies its watchers of each change", { timeout: 10000 }, async () => {
+  const terminal = await stateTerminal();
+  const seen = [];
+  terminal.status.watchFn((value) => seen.push(value));
+  terminal.emit({ event: "shell.state", from: null, to: "running", source: "osc133", sequence: 1, exit: null });
+  terminal.emit({ event: "shell.state", from: "running", to: "exited", source: "osc133", sequence: 2, exit: 1 });
+  assert.deepEqual(seen, [
+    { state: "running", source: "osc133", sequence: 1, exit: null },
+    { state: "exited", source: "osc133", sequence: 2, exit: 1 },
+  ]);
+});
+
+const INVALID_STATE_EVENTS = [
+  ["an unknown state", { event: "shell.state", from: null, to: "busy", source: "osc133", sequence: 1, exit: null }],
+  ["a sequence of zero", { event: "shell.state", from: null, to: "idle", source: "osc133", sequence: 0, exit: null }],
+  ["a missing exit", { event: "shell.state", from: null, to: "exited", source: "osc133", sequence: 1 }],
+  ["an exit of a state other than exited", { event: "shell.state", from: null, to: "idle", source: "osc133", sequence: 1, exit: 0 }],
+  ["an exit above 255", { event: "shell.state", from: null, to: "exited", source: "osc133", sequence: 1, exit: 256 }],
+  ["an unknown source", { event: "shell.state", from: null, to: "idle", source: "screen", sequence: 1, exit: null }],
+  ["a read reply with a state and no source", { event: "shell.state.current", state: "idle", source: null, sequence: 1, exit: null }],
+  ["a read reply without a state and a sequence", { event: "shell.state.current", state: null, source: null, sequence: 3, exit: null }],
+];
+
+for (const [name, event] of INVALID_STATE_EVENTS) {
+  test(`a state event with ${name} is a sidecar error and keeps the previous state`, { timeout: 10000 }, async () => {
+    const terminal = await stateTerminal();
+    const before = { state: "running", source: "osc133", sequence: 1, exit: null };
+    terminal.emit({ event: "shell.state", from: null, to: "running", source: "osc133", sequence: 1, exit: null });
+    terminal.emit(event);
+    assert.deepEqual(terminal.state(), before, "an invalid state event changed the state");
+    assert.match(terminal.error() ?? "", /^terminal input failed: invalid terminal state from sidecar: /);
+  });
+}
+
+// The activity of a terminal (core docs/spec/terminal-state.md#activity): the core level that the plugin derives from
+// its state and exit code.
+function expectedActivity({ state, exit }) {
+  if (state === "idle") return "idle";
+  if (state === "running") return "running";
+  if (state === "exited" && exit !== null && exit !== 0) return "failed";
+  return null;
+}
+
+async function activityTerminal() {
+  const terminal = await stateTerminal();
+  const status = terminal.expose.getStatus("term.activity");
+  assert.notEqual(status, undefined, "the status term.activity is not declared");
+  return { ...terminal, activity: () => status.readFn(), activityStatus: status };
+}
+
+for (const { name, events } of STATE_CASES) {
+  test(`term.activity follows the state and the exit code: ${name}`, { timeout: 10000 }, async () => {
+    const terminal = await activityTerminal();
+    assert.equal(terminal.activity(), null, "the activity before the first change");
+    for (const change of events) {
+      terminal.emit({ event: "shell.state", ...change });
+      assert.equal(terminal.activity(), expectedActivity({ state: change.to, exit: change.exit }),
+        `the activity after the change ${change.sequence}`);
+    }
+  });
+}
+
+test("term.activity notifies its watchers only when the level changes", { timeout: 10000 }, async () => {
+  const terminal = await activityTerminal();
+  const seen = [];
+  terminal.activityStatus.watchFn((value) => seen.push(value));
+  terminal.emit({ event: "shell.state", from: null, to: "idle", source: "osc133", sequence: 1, exit: null });
+  terminal.emit({ event: "shell.state", from: "idle", to: "running", source: "osc133", sequence: 2, exit: null });
+  terminal.emit({ event: "shell.state", from: "running", to: "exited", source: "osc133", sequence: 3, exit: 2 });
+  terminal.emit({ event: "shell.state", from: "exited", to: "idle", source: "osc133", sequence: 4, exit: null });
+  terminal.emit({ event: "shell.state", from: "idle", to: "running", source: "osc133", sequence: 5, exit: null });
+  terminal.emit({ event: "shell.state", from: "running", to: "exited", source: "osc133", sequence: 6, exit: 0 });
+  terminal.emit({ event: "shell.state.current", state: "exited", source: "osc133", sequence: 6, exit: 0 });
+  assert.deepEqual(seen, ["idle", "running", "failed", "idle", "running", null]);
+});
+
+// The row-range reads of term.screen.rows on an open session.
+async function rowsTerminal() {
+  const sidecar = createFakeSidecar();
+  const expose = createFakeExpose();
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
+    window: { TextEncoder },
+  });
+  openSession(sidecar);
+  const rows = expose.getCommand("term.screen.rows");
+  assert(rows, "term.screen.rows command registered");
+  const emit = (event) => sidecar.triggerEvent("test-session", event);
+  const requested = (from, count) =>
+    sidecar.untilMessage((body) => body.operation === "screen.read" && body.from === from && body.count === count);
+  return { sidecar, rows, emit, requested };
+}
+
+// term.screen.rows sends screen.read with a row range; the screen.rows event that answers it carries the rows, and the command
+// returns the rows with the plain text of each row.
+test("term.screen.rows sends a row range and returns the rows and their plain text", { timeout: 10000 }, async () => {
+  const terminal = await rowsTerminal();
+  const reading = terminal.rows({ from: 4, count: 2 });
+  await terminal.requested(4, 2);
+  terminal.emit({
     event: "screen.rows", from: 4, count: 2,
     rows: [[{ ch: "a", width: 1 }, { ch: "b", width: 1 }], [{ ch: "c", width: 1 }, { ch: "", width: 0 }]],
   });
@@ -7247,39 +7485,38 @@ test("term.screen.rows sends a row range and returns the rows and their plain te
   assert.equal(result.from, 4);
   assert.equal(result.count, 2);
 
-  await assert.rejects(rowsCommand({ from: 4 }), /count/, "a range with only from is refused before a request is sent");
+  await assert.rejects(terminal.rows({ from: 4 }), /count/, "a range with only from is refused before a request is sent");
 });
 
-// The refused and the waiting range reads: a count outside 1 to 200 and a from below 0 are refused before any request, a
-// screen.rows event of another range does not answer a waiting read, and a sidecar failure ends a waiting read.
-test("term.screen.rows refuses a range out of bounds and ends a waiting read at a sidecar failure", async () => {
-  FakeResizeObserver.reset();
-  const sidecar = createFakeSidecar();
-  const expose = createFakeExpose();
-  await startTerminal({
-    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
-    scale: 1, window: { ResizeObserver: FakeResizeObserver, TextEncoder, devicePixelRatio: 1 },
-  });
-  FakeResizeObserver.triggerAll();
-
-  const rowsCommand = expose.getCommand("term.screen.rows");
-  assert(rowsCommand, "term.screen.rows command registered");
-  const readRequests = () => sidecar.getMessages().filter(({ body }) => body.operation === "screen.read").length;
+// A count outside 1 to 200 and a from below 0 are refused before any request.
+test("term.screen.rows refuses a range out of bounds before a request", { timeout: 10000 }, async () => {
+  const terminal = await rowsTerminal();
+  const readRequests = () => terminal.sidecar.getMessages().filter(({ body }) => body.operation === "screen.read").length;
   const before = readRequests();
-  await assert.rejects(rowsCommand({ from: 0, count: 201 }), /count/, "a count above 200 is refused");
-  await assert.rejects(rowsCommand({ from: 0, count: 0 }), /count/, "a count below 1 is refused");
-  await assert.rejects(rowsCommand({ from: -1, count: 1 }), /from/, "a negative from is refused");
+  await assert.rejects(terminal.rows({ from: 0, count: 201 }), /count/, "a count above 200 is refused");
+  await assert.rejects(terminal.rows({ from: 0, count: 0 }), /count/, "a count below 1 is refused");
+  await assert.rejects(terminal.rows({ from: -1, count: 1 }), /from/, "a negative from is refused");
   assert.equal(readRequests(), before, "a refused range sends no screen.read request");
+});
 
-  const waiting = rowsCommand({ from: 4, count: 2 });
-  await sidecar.untilMessage((body) => body.operation === "screen.read" && body.from === 4 && body.count === 2);
-  sidecar.triggerEvent("test-session", { event: "screen.rows", from: 5, count: 2, rows: [] });
-  let settled = false;
-  waiting.then(() => { settled = true; }, () => { settled = true; });
-  await new Promise((resolve) => setTimeout(resolve, 20));
-  assert.equal(settled, false, "a screen.rows event of another range does not answer the waiting read");
+// A screen.rows event of another range does not answer a waiting read: the event of the other range arrives first, and the
+// read returns the rows of the event of its own range, which arrives after it.
+test("term.screen.rows is answered only by the screen.rows event of its range", { timeout: 10000 }, async () => {
+  const terminal = await rowsTerminal();
+  const reading = terminal.rows({ from: 4, count: 1 });
+  await terminal.requested(4, 1);
+  terminal.emit({ event: "screen.rows", from: 5, count: 1, rows: [[{ ch: "x", width: 1 }]] });
+  terminal.emit({ event: "screen.rows", from: 4, count: 1, rows: [[{ ch: "y", width: 1 }]] });
+  const result = await reading;
+  assert.deepEqual(result.text, ["y"], "the read returned the rows of another range");
+});
 
-  sidecar.triggerFailure("test-session", "the service exited");
+// A sidecar failure ends a waiting range read.
+test("term.screen.rows ends a waiting read at a sidecar failure", { timeout: 10000 }, async () => {
+  const terminal = await rowsTerminal();
+  const waiting = terminal.rows({ from: 4, count: 2 });
+  await terminal.requested(4, 2);
+  terminal.sidecar.triggerFailure("test-session", "the service exited");
   await assert.rejects(waiting, { message: "the sidecar ended before it answered: the service exited" },
     "a sidecar failure ends the waiting range read");
 });
