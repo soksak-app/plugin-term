@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P51: `term.screen.rows` 의 params 는 core 의 manifest reader 가 거절하는 `required`, `minimum`, `maximum` 없이 `from` 과 `count` 를 정수로 선언한다. manifest 시험이 모든 exposure schema 가 `type`, `properties`, `items`, `enum` 만 쓰는지 판정한다. Red: 시험이 keyword 네 개로 실패했다. Green: `pnpm test` 가 360 시험 중 360 개를 통과한다.
 - P50: 각 `term.screen.rows` read 는 correlation identifier 하나를 보내고, 그것을 이름 붙인 답이 read 를 끝낸다. 보유한 행 밖의 범위의 거절은 명령을 `term.screen.rows: invalidParams: <reason>` 로 reject 하고 `term.session` 의 오류를 두지 않는다. Red: 범위 시험 다섯 개 중 세 개가 실패했다. Green: `pnpm test` 가 359 시험 중 359 개를 통과한다.
 - P49: `events.json` 이 `plugin.term.screen.rows.unmatched`(class `io`, level `debug`, `from` 과 `count`)를 선언하므로 `make check` 가 다시 통과한다. Red: catalog 시험이 `plugin.term.screen.rows.unmatched is declared` 로 실패했다. Green: 통과한다.
 - P48: 명령 `term.screen.rows` 는 sidecar 요청 `screen.read {from, count}` 로 보존된 screen 행을 `from` 부터 `count` 개(1 부터 200 까지) 돌려주며, 각 행의 cell 행과 plain text 를 준다. 0 미만의 `from` 이나 1 부터 200 밖의 `count` 는 요청 전에 거절하고, 다른 범위의 `screen.rows` 이벤트는 기다리는 read 에 답하지 않으며, sidecar 실패는 기다리는 read 를 끝낸다. Red: main 의 page 에서 357 시험 중 5 개가 실패했다. Green: `pnpm test` 가 357 시험 중 357 개를 통과한다.
