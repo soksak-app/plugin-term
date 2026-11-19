@@ -1591,12 +1591,26 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   // pty.pending requests in the order that they were sent, so the next answer is the answer of the first of them.
   const replacedPtyReads = [];
 
-  // Ends each wait for a reply of the sidecar: the reads of the screen and the pty.pending measurement with error. The
-  // acknowledgement of screen.watch ends where its state changes.
+  // The row-range reads of terminal.screen.rows, each waiting for the screen.rows event of its own range.
+  const rangeReads = new Set();
+  const rangeRead = (from, count) => new Promise((resolve, reject) => {
+    const entry = { from, count, resolve, reject };
+    rangeReads.add(entry);
+    terminal.send(id, { operation: "screen.read", from, count }).catch((error) => {
+      rangeReads.delete(entry);
+      reject(error);
+    });
+  });
+
+  // Ends each wait for a reply of the sidecar: the reads of the screen, the row ranges and the pty.pending measurement with error.
+  // The acknowledgement of screen.watch ends where its state changes.
   const endSidecarWaits = (error) => {
     const reads = [...screenReads];
     screenReads.clear();
     for (const entry of reads) entry.reject(error);
+    const ranges = [...rangeReads];
+    rangeReads.clear();
+    for (const entry of ranges) entry.reject(error);
     const waiter = pendingPtyRead;
     pendingPtyRead = null;
     waiter?.reject(error);
@@ -1747,6 +1761,14 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
       followScreen();
     } else if (body.event === "screen.watching") {
       // A late acknowledgement of an ended transition owns no current state.
+    } else if (body.event === "screen.rows") {
+      const entry = [...rangeReads].find((read) => read.from === body.from && read.count === body.count);
+      if (entry) {
+        rangeReads.delete(entry);
+        entry.resolve(body.rows);
+      } else {
+        runtime.log.debug("screen.rows.unmatched", { from: body.from, count: body.count });
+      }
     } else if (body.event === "screen") {
       if (body.base === false && screenReadAwaited) {
         runtime.log.debug("screen.refused", { number: body.number, previous: body.previous });
@@ -2203,6 +2225,16 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
       expose.command("term.screen.read", async () => {
         if (region === null) throw new Error("Terminal not initialized");
         return awaitScreen();
+      }),
+      expose.command("term.screen.rows", async (params) => {
+        if (region === null) throw new Error("Terminal not initialized");
+        const { from, count } = params ?? {};
+        if (!Number.isInteger(from) || from < 0 || !Number.isInteger(count) || count < 1 || count > 200) {
+          throw new Error("term.screen.rows requires from (an integer of at least 0) and count (an integer from 1 to 200)");
+        }
+        const rows = await rangeRead(from, count);
+        const text = rows.map((row) => row.filter((cell) => cell.width !== 0).map((cell) => cell.ch ?? "").join(""));
+        return { from, count, rows, text };
       }),
       expose.command("term.close", async () => {
         await endSession();
