@@ -567,6 +567,24 @@
       },
       "description": "A screen.rows event of the sidecar matched no waiting term.screen.rows read; from and count are its range."
     },
+    "plugin.term.messages.unmatched": {
+      "layer": "plugin",
+      "class": "io",
+      "level": "debug",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "refused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "refused"
+        ]
+      },
+      "description": "A reply of the sidecar arrived for a messages request that no longer waits, such as a request that the end of the sidecar connection or the close of the view already ended; refused is whether the reply is a refusal {error, reason}."
+    },
     "plugin.term.frame": {
       "layer": "plugin",
       "class": "frame",

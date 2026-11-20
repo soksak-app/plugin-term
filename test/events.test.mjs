@@ -76,6 +76,15 @@ test("the catalog declares the screen.rows reply that matches no waiting range r
   assert.equal(validate({ from: 5 }), false, "a record without count is refused");
 });
 
+test("the catalog declares the messages reply that matches no waiting messages request, with whether it is a refusal", () => {
+  const event = catalog.events["plugin.term.messages.unmatched"];
+  assert.ok(event, "plugin.term.messages.unmatched is declared");
+  assert.equal(event.level, "debug");
+  const validate = new Ajv2020({ allErrors: true }).compile(event.fields);
+  assert.equal(validate({ refused: true }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({}), false, "a record without refused is refused");
+});
+
 test("the catalog declares the program clipboard request that the clipboard.program setting refuses, with its operation and policy (P40)", () => {
   const event = catalog.events["plugin.term.clipboard.refused"];
   assert.ok(event, "plugin.term.clipboard.refused is declared");
