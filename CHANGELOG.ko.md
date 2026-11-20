@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P54-2: `term.screen.scroll.read {by}` 가 전체 화면 program 이 그린 적 없는 글을 읽는다. 새 설정 `scrollReadQuiet`(display frame, 기본 6)과 함께 `screen.scroll.read {by, quiet}` 를 보내고 sidecar 의 답을 돌려준다(core `docs/spec/terminal-read.md#program-scroll`). screen 을 복원하지 못한 읽기는 읽기가 그것을 복원할 때까지 session 오류를 보인다.
 - P54-1: `term.screen.rows` 가 `screen`(`primary` 나 `alternate`)을 요구해 그것 없는 읽기를 요청 전에 거절하고 그것을 sidecar 에 보낸다. `term.session` 이 sidecar 의 `scrollback.dropped`, `alternate {active, history, dropped}`, `foreground {pid, command, cwd}` 를 보관한다. `term.screen.read` 와 `term.screen.rows` 의 설명이 core `docs/spec/terminal-read.md` 의 읽기 mode, 그 쓰임, 그것이 보지 못하는 것을 말한다.
 - P52: `term.screen.read`, `term.screen.rows`, `term.scrollback.set` 의 설명이 screen read 가 viewport 와 alternate screen 을 따른다는 것, `from` 이 세는 행과 범위 read 가 viewport 를 움직이지 않는다는 것, viewport offset 이 alternate screen 의 program 을 scroll 하지 않는다는 것을 말한다.
 - P51: `term.screen.rows` 의 params 는 core 의 manifest reader 가 거절하는 `required`, `minimum`, `maximum` 없이 `from` 과 `count` 를 정수로 선언한다. manifest 시험이 모든 exposure schema 가 `type`, `properties`, `items`, `enum` 만 쓰는지 판정한다. Red: 시험이 keyword 네 개로 실패했다. Green: `pnpm test` 가 360 시험 중 360 개를 통과한다.

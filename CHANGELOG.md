@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P54-2: `term.screen.scroll.read {by}` reads text that a full-screen program never drew: it sends `screen.scroll.read {by, quiet}` with the new setting `scrollReadQuiet` (display frames, default 6) and returns the reply of the sidecar (core `docs/spec/terminal-read.md#program-scroll`); a read that did not restore the screen shows the session error until a read restores it.
 - P54-1: `term.screen.rows` requires `screen` (`primary` or `alternate`), refuses a read without it before any request and sends it to the sidecar; `term.session` keeps `scrollback.dropped`, `alternate {active, history, dropped}` and `foreground {pid, command, cwd}` from the sidecar; the descriptions of `term.screen.read` and `term.screen.rows` state their read mode of core `docs/spec/terminal-read.md`, its use and what it cannot see.
 - P52: The descriptions of `term.screen.read`, `term.screen.rows` and `term.scrollback.set` state that the screen read follows the viewport and the alternate screen, what row `from` counts and that the range read does not move the viewport, and that the viewport offset does not scroll a program on the alternate screen.
 - P51: The params of `term.screen.rows` declare `from` and `count` as integers without `required`, `minimum` and `maximum`, which the manifest reader of core refuses; a manifest test judges that every exposure schema uses only `type`, `properties`, `items` and `enum`. Red: the test failed on the four keywords. Green: `pnpm test` passes 360 of 360.
