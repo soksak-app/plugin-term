@@ -1844,7 +1844,8 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   // is {folder, registration, held, last}, and each decision and each change of the hold is a record of the event log.
   const ENTER = Object.freeze({ type: "key", key: "Enter", shift: false, alt: false, ctrl: false });
   const createMessagesDelivery = () => {
-    // The last value of core.grid, whose tabs give the shown title of a sender.
+    // The last value of core.grid, whose tabs give the tab name of a sender: its `title`, never a title that a program of the tab set,
+    // which core.grid reports as `label` (core docs/spec/messaging.md#injected-message).
     let grid = null;
     const stopGrid = runtime.status.watch("core.grid", (value) => { grid = value; });
     closing.addEventListener("abort", stopGrid, { once: true });
@@ -1913,7 +1914,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
         pending.unshift(event);
         return;
       }
-      const pasted = await inject({ type: "paste", text: `[메시지 from ${tab.label ?? tab.title}] ${message.text}` });
+      const pasted = await inject({ type: "paste", text: `[메시지 from ${tab.title}] ${message.text}` });
       if (pasted.error !== undefined) {
         refusedBy(event, pasted);
         return;

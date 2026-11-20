@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P137: An injected message names its sender by the tab name of the sending tab, its `title` in `core.grid`, and never by the title that its program set.
 - P136: The window check `e2e/injection.test.mjs` with the program `e2e/blocked-prompt` judges that a message to a terminal that runs a command is submitted after the command, and that a message to a blocked program is held, reaches no byte of its prompt and is injected after the answer.
 - P135: The window check `e2e/messages.test.mjs` waits beyond the 10 seconds of the request watch of the sidecar, judges the reply `{path, receiver}` of `sok message send` and the injection that `term.messages` of the reader reports.
 - P134: The view context gives the page the status watch of the view runtime, so a terminal of a project window mounts and follows `core.grid` for the sender titles of P133.
