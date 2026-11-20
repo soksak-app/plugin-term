@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P57: `term.process.list` reads the process list of the terminal of core `docs/spec/process-list.md`: the foreground program and the background jobs, each `{group, pid, command, arguments, cwd, started}` and a job with `state`; `term.session` keeps both from each `processes` event of the sidecar, sets both to `null` at a failed read and shows it, and the page no longer reads the event `foreground`.
 - P54-2: `term.screen.scroll.read {by}` reads text that a full-screen program never drew: it sends `screen.scroll.read {by, quiet}` with the new setting `scrollReadQuiet` (display frames, default 6) and returns the reply of the sidecar (core `docs/spec/terminal-read.md#program-scroll`); a read that did not restore the screen shows the session error until a read restores it.
 - P54-1: `term.screen.rows` requires `screen` (`primary` or `alternate`), refuses a read without it before any request and sends it to the sidecar; `term.session` keeps `scrollback.dropped`, `alternate {active, history, dropped}` and `foreground {pid, command, cwd}` from the sidecar; the descriptions of `term.screen.read` and `term.screen.rows` state their read mode of core `docs/spec/terminal-read.md`, its use and what it cannot see.
 - P52: The descriptions of `term.screen.read`, `term.screen.rows` and `term.scrollback.set` state that the screen read follows the viewport and the alternate screen, what row `from` counts and that the range read does not move the viewport, and that the viewport offset does not scroll a program on the alternate screen.

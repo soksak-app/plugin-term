@@ -1241,8 +1241,10 @@ function createFakeSidecar({ delay = () => null, answers = true, watchAnswers = 
       if (answers && cids.length > 0) for (const handler of listeners.get(id) ?? []) {
         if (body.operation === "screen.watch") {
           if (watchAnswers) handler({ event: "screen.watching", enabled: body.enabled }, cids);
-          // A range read and a scroll read are answered only by their event or their refusal, which the test sends.
-        } else if (!(body.operation === "screen.read" && body.from !== undefined) && body.operation !== "screen.scroll.read") {
+          // A range read, a scroll read and a process list are answered only by their event or their refusal, which the test
+          // sends.
+        } else if (!(body.operation === "screen.read" && body.from !== undefined) && body.operation !== "screen.scroll.read" &&
+          body.operation !== "process.list") {
           handler({ ack: true }, cids);
         }
       }
@@ -7460,8 +7462,8 @@ test("term.screen.scroll.read rejects with the error of the sidecar and with a r
 });
 
 // The session state of core docs/spec/terminal-read.md#session-state: term.session keeps scrollback with dropped and the
-// alternate member of each view event and the foreground of each foreground event, and refuses an event of another form.
-test("term.session keeps the members of the read modes that the view and foreground events carry", { timeout: 10000 }, async () => {
+// alternate member of each view event, and refuses an event of another form.
+test("term.session keeps the members of the read modes that the view events carry", { timeout: 10000 }, async () => {
   FakeResizeObserver.reset();
   const fakeSidecar = createFakeSidecar();
   const expose = createFakeExpose();
@@ -7472,21 +7474,10 @@ test("term.session keeps the members of the read modes that the view and foregro
   FakeResizeObserver.triggerAll();
   openSession(fakeSidecar);
   const session = () => expose.getStatus("term.session").readFn();
-  assert.deepEqual([session().alternate, session().foreground], [{ active: false, history: 0, dropped: 0 }, null], "the members before any event");
+  assert.deepEqual(session().alternate, { active: false, history: 0, dropped: 0 }, "the member before any event");
 
   fakeSidecar.triggerRaw("test-session", { ...VIEW_EVENT, scrollback: { offset: 0, history: 30, dropped: 7 }, alternate: { active: true, history: 3, dropped: 1 } });
   assert.deepEqual([session().scrollback, session().alternate], [{ offset: 0, history: 30, dropped: 7 }, { active: true, history: 3, dropped: 1 }]);
-
-  for (const foreground of [{ pid: 42, command: "/usr/bin/less", cwd: "/tmp" },
-    { pid: 43, command: null, cwd: null, error: "proc_pidpath of 43: Operation not permitted" }, null]) {
-    fakeSidecar.triggerRaw("test-session", { event: "foreground", foreground });
-    assert.deepEqual(session().foreground, foreground);
-  }
-  assert.equal(session().error, undefined, "valid events report no error");
-
-  fakeSidecar.triggerRaw("test-session", { event: "foreground", foreground: { pid: "42", command: "/usr/bin/less", cwd: "/tmp" } });
-  assert.match(session().error ?? "", /invalid foreground from sidecar/);
-  assert.equal(session().foreground, null, "a refused foreground event changes no foreground");
 
   for (const overrides of [{ alternate: undefined }, { alternate: { active: "yes", history: 0, dropped: 0 } },
     { scrollback: { offset: 0, history: 30 } }]) {
@@ -7495,6 +7486,90 @@ test("term.session keeps the members of the read modes that the view and foregro
     assert.deepEqual([session().scrollback, session().alternate], [{ offset: 0, history: 30, dropped: 7 }, { active: true, history: 3, dropped: 1 }],
       "a refused view changes no member");
   }
+});
+
+// The process list of core docs/spec/process-list.md: the foreground program and the background jobs of the session.
+const LESS = { group: 42, pid: 42, command: "/usr/bin/less", arguments: ["notes.txt"], cwd: "/tmp", started: 1763600000000 };
+const SLEEP_JOB = { group: 50, pid: 50, command: "/bin/sleep", arguments: ["100"], cwd: "/tmp", started: 1763600000500, state: "running" };
+const REFUSED = { group: 43, pid: 43, command: null, arguments: null, cwd: null, started: null,
+  error: "read the arguments of process 43: Operation not permitted" };
+
+const startProcessTerminal = async () => {
+  FakeResizeObserver.reset();
+  const sidecar = createFakeSidecar();
+  const expose = createFakeExpose();
+  await startTerminal({
+    view: createFakeView(), detachRegions: async () => {}, attachImage: createFakeAttachImage().function, sidecar, expose,
+    scale: 1, window: { ResizeObserver: FakeResizeObserver, TextEncoder, devicePixelRatio: 1 },
+  });
+  FakeResizeObserver.triggerAll();
+  openSession(sidecar);
+  const lists = () => sidecar.getMessages().filter(({ body }) => body.operation === "process.list").map(({ body }) => body);
+  return { sidecar, expose, lists, session: () => expose.getStatus("term.session").readFn(),
+    command: expose.getCommand("term.process.list") };
+};
+
+// core docs/spec/process-list.md#session-state: term.session keeps foreground and background of each processes event, sets both
+// to null at a failed read of the sidecar, which its error shows, and refuses an event of another form.
+test("term.session keeps the foreground program and the background jobs of the processes events", async () => {
+  const { sidecar, session } = await startProcessTerminal();
+  assert.deepEqual([session().foreground, session().background], [null, null], "the list is not known before any event");
+
+  for (const list of [{ foreground: LESS, background: [SLEEP_JOB] }, { foreground: REFUSED, background: [{ ...REFUSED, state: "stopped" }] },
+    { foreground: null, background: [] }]) {
+    sidecar.triggerRaw("test-session", { event: "processes", ...list });
+    assert.deepEqual([session().foreground, session().background], [list.foreground, list.background], JSON.stringify(list));
+  }
+  assert.equal(session().error, undefined, "valid events report no error");
+
+  sidecar.triggerRaw("test-session", { event: "processes", foreground: LESS, background: [SLEEP_JOB] });
+  for (const list of [{ foreground: { ...LESS, pid: "42" }, background: [] }, { foreground: LESS, background: [{ ...SLEEP_JOB, state: "sleeping" }] },
+    { foreground: { ...LESS, source: "process-table" }, background: [] }, { foreground: LESS, background: [LESS] },
+    { foreground: { ...LESS, arguments: [1] }, background: [] }, { foreground: { ...REFUSED, cwd: "/tmp" }, background: [] },
+    { foreground: LESS }]) {
+    sidecar.triggerRaw("test-session", { event: "processes", ...list });
+    assert.match(session().error ?? "", /invalid processes from sidecar/, JSON.stringify(list));
+    assert.deepEqual([session().foreground, session().background], [LESS, [SLEEP_JOB]], "a refused event changes no member");
+  }
+
+  const reason = "list the processes of terminal 268435471: Operation not permitted";
+  sidecar.triggerRaw("test-session", { event: "processes", error: reason });
+  assert.deepEqual([session().foreground, session().background], [null, null], "a failed read leaves the list unknown");
+  assert.equal(session().error, `terminal process list: ${reason}`);
+
+  sidecar.triggerRaw("test-session", { event: "processes", foreground: LESS, background: [] });
+  assert.equal(session().error ?? null, null, "the next read ends the error");
+});
+
+// core docs/spec/process-list.md#reply: term.process.list sends process.list and returns the foreground program and the
+// background jobs of the process.list reply that names its cids.
+test("term.process.list sends process.list and returns the foreground program and the background jobs", async () => {
+  const { sidecar, lists, command } = await startProcessTerminal();
+  assert(command, "term.process.list command registered");
+  const listing = command({});
+  await sidecar.until(() => lists().length === 1);
+  assert.deepEqual(lists(), [{ operation: "process.list" }]);
+  sidecar.triggerRaw("test-session", { event: "process.list", foreground: LESS, background: [SLEEP_JOB] }, sidecar.getCids(lists()[0]));
+  assert.deepEqual(await listing, { foreground: LESS, background: [SLEEP_JOB] });
+});
+
+// core docs/spec/process-list.md#failures: the command rejects with the error of the sidecar and with a reply of another form.
+test("term.process.list rejects with the error of the sidecar and with a reply of another form", async () => {
+  const { sidecar, lists, command } = await startProcessTerminal();
+  const refused = command({});
+  await sidecar.until(() => lists().length === 1);
+  sidecar.triggerRaw("test-session", { error: "Session not open", request: { operation: "process.list" } }, sidecar.getCids(lists()[0]));
+  await assert.rejects(refused, { message: "term.process.list: Session not open" });
+
+  const malformed = command({});
+  await sidecar.until(() => lists().length === 2);
+  sidecar.triggerRaw("test-session", { event: "process.list", foreground: LESS, background: "none" }, sidecar.getCids(lists()[1]));
+  await assert.rejects(malformed, /term\.process\.list received an invalid reply/);
+
+  const ended = command({});
+  await sidecar.until(() => lists().length === 3);
+  sidecar.triggerFailure("test-session", "the sidecar exited");
+  await assert.rejects(ended, /the sidecar ended before it answered: the sidecar exited/);
 });
 
 // The terminal state (core docs/spec/terminal-state.md). `test/fixtures/terminal-state-osc133.json` is the copy of core
