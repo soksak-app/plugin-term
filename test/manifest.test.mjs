@@ -135,7 +135,7 @@ test("the schemas of the exposure entries use only the keywords that core reads 
 // The messages of core docs/spec/messaging.md#path-of-the-reads: the reads take the cursor {after, registration}, and the status
 // names the registered folder. The schema form of a manifest has type, properties, items and enum only, so the descriptions state
 // the bound of after and that no other member is accepted.
-test("the messages commands declare the cursor parameters and term.messages the registered folder", () => {
+test("the messages commands declare the cursor parameters and term.messages the registered folder and the delivery", () => {
   for (const name of ["term.messages.read", "term.messages.wait"]) {
     const command = manifest.exposes.commands.find((entry) => entry.name === name);
     assert.ok(command, `${name} is declared`);
@@ -145,7 +145,10 @@ test("the messages commands declare the cursor parameters and term.messages the 
   }
   const status = manifest.exposes.status.find((entry) => entry.name === "term.messages");
   assert.ok(status, "term.messages is declared");
-  assert.deepEqual(status.schema, { type: ["object", "null"], properties: { folder: { type: "string" }, registration: { type: "string" } } });
+  assert.deepEqual(Object.keys(status.schema.properties), ["folder", "registration", "held", "last"],
+    "term.messages holds the delivery beside the registration (core docs/spec/messaging.md#delivery)");
+  assert.deepEqual(status.schema.properties.held.properties.reason.enum, ["blocked", "notice", "composition", "typing", "input-held"]);
+  assert.deepEqual(status.schema.properties.last.properties.state.enum, ["injected", "refused", "skipped"]);
 });
 
 test("the context menu of the surface copies and pastes", () => {
