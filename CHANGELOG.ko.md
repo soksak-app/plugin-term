@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P140: 주입 message는 `[메시지 from <title> (<folder>): <framing>] <text>`의 paste이며, 보내는 쪽의 folder를 밝히고 message가 다른 agent에게서 왔으며 지금 작업을 마친 뒤 처리되고 승인이나 권한을 주지 않으며 대기 중인 질문에 답하지 않음을 밝힌다.
 - P139: window check는 message의 보고 요청과 `sok message send --reply`의 보고를 판정한다.
 - P138: 주입 message는 보낸 쪽을 주입할 때 보내는 tab이 보이는 text, 즉 label이나 이름으로 한 줄에 40자까지 부른다.
 - P137: 주입 message는 보낸 쪽을 보내는 tab의 tab name, 즉 `core.grid`의 `title`로 부르며, 그 program이 정한 제목으로 결코 부르지 않는다.
