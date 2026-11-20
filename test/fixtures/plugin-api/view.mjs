@@ -109,6 +109,19 @@ export function createViewBridge({ handler, report }) {
         on: (name, fn) => subscribe({ name }, "runtime.native.on", handler.listen(name, fn)),
       },
       sidecar,
+      // A watch of a status makes the call runtime.status.watch and delivers each `status` event of its name; its end makes the call
+      // runtime.status.unwatch (core docs/spec/native-surfaces.md#view-surfaces, view events).
+      status: {
+        watch: (name, fn, { surface } = {}) => {
+          const params = surface === undefined ? { name } : { name, surface };
+          const release = handler.listen("status", (data) => { if (data.name === name && data.surface === surface) fn(data.value); });
+          request("runtime.status.watch", params).catch((error) => report({ kind: "status", error }));
+          return () => {
+            release();
+            request("runtime.status.unwatch", params).catch((error) => report({ kind: "status", error }));
+          };
+        },
+      },
     },
     composition,
     commands: {

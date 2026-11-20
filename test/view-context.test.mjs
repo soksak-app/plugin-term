@@ -46,6 +46,20 @@ test("the view context uses the bridge logger instead of requesting runtime.log 
   }], "the context writes the record through one runtime.log batch of the bridge, and makes no other call");
 });
 
+test("the view context follows a status through the status watch of the bridge runtime", { timeout: 5000 }, () => {
+  const { channel, calls } = channelWith();
+  const bridge = createViewBridge({ handler: channel, report: () => {} });
+  const { context } = contextFor(bridge);
+
+  // The page follows core.grid for the title of the sender of a message (core docs/spec/messaging.md#injected-message).
+  assert.equal(context.runtime.status, bridge.runtime.status, "the page status watch is the status watch of the view runtime");
+  const stop = context.runtime.status.watch("core.grid", () => {});
+  stop();
+  assert.deepEqual(calls.filter(({ command }) => command.startsWith("runtime.status")).map(({ command, params }) => [command, params]),
+    [["runtime.status.watch", { name: "core.grid" }], ["runtime.status.unwatch", { name: "core.grid" }]],
+    "the watch and its end are the calls of the view runtime");
+});
+
 test("the view context uses the clipboard of the bridge runtime instead of a copy of it", { timeout: 5000 }, () => {
   const { channel, calls } = channelWith();
   const bridge = createViewBridge({ handler: channel, report: () => {} });

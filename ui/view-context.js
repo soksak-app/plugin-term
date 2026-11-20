@@ -84,6 +84,8 @@ export function createViewContext({ bridge, start, report, diagnostics = null, s
         },
         links: { open: (url) => calls.request("runtime.links.open", url) },
         clipboard: runtime.clipboard,
+        // The page follows core.grid through the status watch of the view runtime (core docs/spec/messaging.md#injected-message).
+        status: runtime.status,
         log: runtime.log,
       },
     },
