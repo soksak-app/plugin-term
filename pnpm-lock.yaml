@@ -12,8 +12,8 @@ importers:
         specifier: 1.32.2
         version: 1.32.2(zod@4.6.7)
       '@soksak/kit':
-        specifier: https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz
-        version: https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz
+        specifier: https://github.com/soksak-app/kit/releases/download/v0.0.16/soksak-kit-0.0.16.tgz
+        version: https://github.com/soksak-app/kit/releases/download/v0.0.16/soksak-kit-0.0.16.tgz
       '@soksak/window-check':
         specifier: https://github.com/soksak-app/core/releases/download/v0.0.42/soksak-window-check-0.0.42.tgz
         version: https://github.com/soksak-app/core/releases/download/v0.0.42/soksak-window-check-0.0.42.tgz
@@ -184,9 +184,9 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
-  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz':
-    resolution: {integrity: sha512-xeTLFb6TopYTwfs7U9iZjlbxYN4sa9lhfBVGaXgtNGyhhNNJ7y0wvLegOnhTXZeHTbpW8m02g4RZo0OLoqKSZA==, tarball: https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz}
-    version: 0.0.14
+  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.16/soksak-kit-0.0.16.tgz':
+    resolution: {integrity: sha512-w3qqNCaYbTryUfEKsOo32P6jwVeslkVNuVRxMVLXll8sIRqKcUsFLDmFqOH4iLynkhiQx27GsKHjlRw37HER+g==, tarball: https://github.com/soksak-app/kit/releases/download/v0.0.16/soksak-kit-0.0.16.tgz}
+    version: 0.0.16
     hasBin: true
 
   '@soksak/window-check@https://github.com/soksak-app/core/releases/download/v0.0.42/soksak-window-check-0.0.42.tgz':
@@ -810,7 +810,7 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.6.0
       '@parcel/watcher-win32-x64': 2.6.0
 
-  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz':
+  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.16/soksak-kit-0.0.16.tgz':
     dependencies:
       ajv: 8.20.0
       smol-toml: 1.9.1
