@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P135: window check `e2e/messages.test.mjs`가 sidecar의 request watch의 10초를 넘겨 기다리고, `sok message send`의 reply `{path, receiver}`와 reader의 `term.messages`가 알리는 주입을 판정한다.
 - P134: view context가 page에 view runtime의 status watch를 주므로, project window의 terminal이 mount되고 P133의 sender 제목을 위해 `core.grid`를 따른다.
 - P133: page가 registration에 도착한 각 message를 `[메시지 from <title>] <text>`의 paste와 Enter로 `seq` 순서에 따라 주입하고, program이 blocked이거나 notice가 있거나 사람이 조합하거나 입력하거나 session이 input을 쥔 동안 주입을 보류한다. `term.messages`는 `{folder, registration, held, last}`이며, record `plugin.term.messages.delivered`와 `plugin.term.messages.held`가 각 결정과 보류를 알린다(core `docs/spec/messaging.md#injected-message`).
 - P132: `term.activity`는 0이 아닌 `exit`를 가진 `exited`와 `idle`에서 `failed`이고, `term.state`는 sidecar가 `exited` 뒤의 `idle`에 지니는 exit code를 받는다(core `docs/spec/terminal-state.md#activity`). 그래서 실패한 command 뒤에 attach하거나 연결이 다시 맺어진 view는 그 전의 view처럼 `failed`를 보여 준다. page는 자기 실패를 따로 지니지 않는다. core의 공유 case를 다시 복사했다. 검증: 바뀌지 않은 page에서 16개 test의 Red, 그 뒤 plugin의 438개 test의 Green.

@@ -1,5 +1,6 @@
-// The window check of the messages of a term terminal (core docs/spec/messaging.md#path-of-the-reads): an agent in one terminal
-// waits through the MCP tool messages_wait and reads the message that the shell of another terminal writes with `sok message send`.
+// The window check of the messages of a term terminal (core docs/spec/messaging.md#path-of-the-reads and #injected-message): an agent
+// in one terminal waits through the MCP tool messages_wait and reads the message that the shell of another terminal writes with
+// `sok message send`, the page of the receiving terminal injects the message, and the send prints the hold of the receiver.
 // The agent is a script: the MCP client of the ecosystem (@modelcontextprotocol/sdk) runs `sok mcp` of the application with the
 // environment of a process of the first terminal, so no agent program, account or prompt takes part. The check opens a project
 // window, because a terminal registers its folder <root>/.soksak/messages/<surface> only in the window of a project. Every wait
@@ -25,6 +26,11 @@ const CHECK_SHELL = fileURLToPath(new URL("./check-shell", import.meta.url));
 // never receives it.
 const LIMIT = 180000;
 const TEXT = "hello from the other terminal";
+// The seconds that the shell of the sender waits before the send. The sidecar records a request in progress after 10 seconds as the
+// error sidecar.alacritty.request_waiting (docs/spec/alacritty-core.md of the sidecar), and a pending messages_wait is no request in
+// progress, so the wait lasts beyond that bound; each error of the application log fails the check. The program sleep holds the
+// command for the time, and the check waits on the screen of the sender, not on a timer.
+const WAIT_SECONDS = 11;
 
 /** The text of the rows that term.screen reports, one line for each row without its trailing spaces. */
 const screenLines = (rows) => rows.map((row) => row.map((cell) => (cell.ch === undefined ? " ".repeat(cell.width) : cell.ch)).join("").trimEnd());
@@ -101,23 +107,26 @@ for (const app of Object.values(APPS)) {
     // The send follows the open call of term.messages.wait, so the reply of the wait is the arrival of a message after the wait began.
     await p.until("core.plugin.open-calls", (value) => openCalls(value) > calls, `term.messages.wait of ${reader} did not open a call`);
 
-    await p.run(`${PLUGIN}.input`, { bytes: `'${join(dirname(app.binary), "sok")}' message send '${folder}' '${TEXT}'\r` }, sender);
+    await p.run(`${PLUGIN}.input`,
+      { bytes: `sleep ${WAIT_SECONDS} && '${join(dirname(app.binary), "sok")}' message send '${folder}' '${TEXT}'\r` }, sender);
     // The reply of the command, or its error, follows the command line on the screen of the sender. The screen wraps long lines, so
     // the rows from the prompt line of the command to the next prompt are joined, without the space that ends a wrapped row; the command
-    // line itself holds neither `{"path":` nor `sok: `. The name of the written file is in the reply `{"path": ...}` or in the error `message <name> was written; ...` that the
-    // command gives when it cannot read the hold of the receiver (core docs/spec/cli.md#commands); this check judges the read path, and
-    // the form of the reply belongs to the checks of the hold. Any other output is a failed send, which the check reports with the
-    // screen.
+    // line itself holds neither `{"path":` nor `sok: `. The reply is {path, receiver} with the receiver {surface, plugin, held} of the
+    // folder (core docs/spec/cli.md#commands); an error or any other output is a failed send, which the check reports with its text.
     const output = (rows) => {
       const lines = screenLines(rows);
-      const start = lines.findLastIndex((line) => line.startsWith(`${PROMPT} '`));
+      const start = lines.findLastIndex((line) => line.startsWith(`${PROMPT} sleep `));
       return start < 0 ? "" : lines.slice(start).join("");
     };
     const reply = (text) => text.match(/(\{"path":"[^"]+".*\}|sok: .*?)sh-3\.2\$$/)?.[1];
     const text = reply(output(await p.until(`${PLUGIN}.screen`, (rows) => reply(output(rows)) !== undefined,
       `sok message send in ${PLUGIN} tab ${sender} printed no reply`, { surface: sender })));
-    const name = text.match(/^\{"path":"([^"]+)"/)?.[1] ?? text.match(/^sok: message (\S+?\.txt) ?was written;/)?.[1];
-    assert.ok(name, `sok message send failed in ${PLUGIN} tab ${sender}: ${text}`);
+    assert.ok(text.startsWith("{"), `sok message send failed in ${PLUGIN} tab ${sender}: ${text}`);
+    const sent = JSON.parse(text);
+    const name = sent.path;
+    // The receiver holds no injection: its shell waits at the prompt, no program reports a record, and nobody types into it.
+    assert.deepEqual(sent, { path: name, receiver: { surface: reader, plugin: PLUGIN, held: null } },
+      `sok message send printed another reply than {path, receiver}: ${text}`);
     const arrived = toolValue(await waiting, "messages_wait");
     assert.equal(arrived.registration, before.registration, "messages_wait answered another registration");
     assert.equal(arrived.messages.length, 1, `messages_wait did not answer one message: ${JSON.stringify(arrived)}`);
@@ -127,6 +136,13 @@ for (const app of Object.values(APPS)) {
     assert.equal(message.path, name, "the message is not the file that sok message send wrote");
     assert.ok(message.path.startsWith(`${sender}.`) && message.path.endsWith(".txt"), `the message file ${message.path} is not named by its sender`);
     assert.ok(message.seq > before.last && arrived.last >= message.seq, `the cursor did not advance: ${JSON.stringify({ before: before.last, arrived })}`);
+
+    // The page of the reader injects the message into the input of its shell and reports the decision in term.messages.
+    const delivered = await p.until(`${PLUGIN}.messages`, (value) => value?.last?.path === name,
+      `${PLUGIN} tab ${reader} decided no delivery of ${name}`, { surface: reader });
+    assert.deepEqual(delivered.last, { seq: message.seq, path: name, from: sender, state: "injected", reason: null },
+      `${PLUGIN} tab ${reader} did not inject ${name}`);
+    assert.equal(delivered.held, null, `${PLUGIN} tab ${reader} holds the injection: ${JSON.stringify(delivered.held)}`);
 
     // A read with the same cursor answers the same message, because a message is not consumed.
     const again = toolValue(await client.callTool({ name: "messages_read",

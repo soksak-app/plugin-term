@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P135: The window check `e2e/messages.test.mjs` waits beyond the 10 seconds of the request watch of the sidecar, judges the reply `{path, receiver}` of `sok message send` and the injection that `term.messages` of the reader reports.
 - P134: The view context gives the page the status watch of the view runtime, so a terminal of a project window mounts and follows `core.grid` for the sender titles of P133.
 - P133: The page injects each message that arrives in its registration as the paste of `[메시지 from <title>] <text>` and Enter, in increasing `seq`, and holds the injection while the program is blocked, a notice stands, the person composes or types, or the session holds input; `term.messages` is `{folder, registration, held, last}`, and the records `plugin.term.messages.delivered` and `plugin.term.messages.held` state each decision and hold (core `docs/spec/messaging.md#injected-message`).
 - P132: `term.activity` is `failed` for `exited` and `idle` with a nonzero `exit`, and `term.state` takes the exit code that the sidecar keeps on the `idle` after `exited` (core `docs/spec/terminal-state.md#activity`), so a view that attaches after a failed command, or whose connection is made again, shows `failed` as the view before it; the page holds no failure of its own. The shared cases of core are copied again. Verification: Red of 16 tests on the unchanged page, then Green of the 438 tests of the plugin.
