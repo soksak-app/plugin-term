@@ -29,11 +29,13 @@ test("@soksak/window-check is a development dependency that names a core release
 
 // The check of the messages runs its agent with the MCP client of @modelcontextprotocol/sdk, the client library of the ecosystem, so
 // that no agent program takes part; a check file imports no other package.
-test("e2e holds the window checks of the term view and of the messages and its shell, and every check file imports only node, window-check and MCP client modules and its own folder", { timeout: 1000 }, () => {
+test("e2e holds the window checks of the term view, of the messages and of the injection with its shell and program, and every check file imports only node, window-check and MCP client modules and its own folder", { timeout: 1000 }, () => {
   const folder = path.join(ROOT, "e2e");
   assert.ok(existsSync(path.join(folder, "term-view.test.mjs")), "e2e/term-view.test.mjs is missing");
   assert.ok(existsSync(path.join(folder, "messages.test.mjs")), "e2e/messages.test.mjs is missing");
+  assert.ok(existsSync(path.join(folder, "injection.test.mjs")), "e2e/injection.test.mjs is missing");
   assert.ok(statSync(path.join(folder, "check-shell")).mode & 0o111, "e2e/check-shell is not executable");
+  assert.ok(statSync(path.join(folder, "blocked-prompt")).mode & 0o111, "e2e/blocked-prompt is not executable");
   for (const file of readdirSync(folder).filter((name) => name.endsWith(".mjs"))) {
     const source = readFileSync(path.join(folder, file), "utf8");
     for (const [, specifier] of source.matchAll(/^import[^"]*"([^"]+)"/gm)) {

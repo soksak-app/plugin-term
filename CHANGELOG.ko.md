@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P136: program `e2e/blocked-prompt`와 함께 window check `e2e/injection.test.mjs`가, command를 실행하는 terminal로 가는 message는 command 뒤에 제출되고, blocked program으로 가는 message는 보류되어 prompt에 byte가 닿지 않으며 답 뒤에 주입됨을 판정한다.
 - P135: window check `e2e/messages.test.mjs`가 sidecar의 request watch의 10초를 넘겨 기다리고, `sok message send`의 reply `{path, receiver}`와 reader의 `term.messages`가 알리는 주입을 판정한다.
 - P134: view context가 page에 view runtime의 status watch를 주므로, project window의 terminal이 mount되고 P133의 sender 제목을 위해 `core.grid`를 따른다.
 - P133: page가 registration에 도착한 각 message를 `[메시지 from <title>] <text>`의 paste와 Enter로 `seq` 순서에 따라 주입하고, program이 blocked이거나 notice가 있거나 사람이 조합하거나 입력하거나 session이 input을 쥔 동안 주입을 보류한다. `term.messages`는 `{folder, registration, held, last}`이며, record `plugin.term.messages.delivered`와 `plugin.term.messages.held`가 각 결정과 보류를 알린다(core `docs/spec/messaging.md#injected-message`).
