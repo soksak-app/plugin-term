@@ -104,8 +104,8 @@ test("the diagnostic entries inject preedit and record the IME trace", () => {
 
 test("the terminal exposes its session, input, preedit, paste, file drop, screen.read, close commands, and view", () => {
   const names = (kind) => manifest.exposes[kind].map((entry) => entry.name).sort();
-  assert.deepEqual(names("status"), ["term.activity", "term.compose", "term.cursor", "term.screen", "term.session", "term.state"]);
-  assert.deepEqual(names("commands"), ["term.close", "term.copy", "term.cursor.set", "term.drop", "term.focus", "term.image.inline.delete", "term.input", "term.link.open", "term.paste", "term.screen.read", "term.screen.rows", "term.screen.scroll.read", "term.scrollback.set"]);
+  assert.deepEqual(names("status"), ["term.activity", "term.compose", "term.cursor", "term.messages", "term.screen", "term.session", "term.state"]);
+  assert.deepEqual(names("commands"), ["term.close", "term.copy", "term.cursor.set", "term.drop", "term.focus", "term.image.inline.delete", "term.input", "term.link.open", "term.messages.read", "term.messages.wait", "term.paste", "term.screen.read", "term.screen.rows", "term.screen.scroll.read", "term.scrollback.set"]);
   assert.deepEqual(names("element"), ["term.scrollbar", "term.scrollbar.thumb", "term.view"]);
 });
 
@@ -130,6 +130,22 @@ test("the schemas of the exposure entries use only the keywords that core reads 
     }
   }
   assert.deepEqual(found, []);
+});
+
+// The messages of core docs/spec/messaging.md#path-of-the-reads: the reads take the cursor {after, registration}, and the status
+// names the registered folder. The schema form of a manifest has type, properties, items and enum only, so the descriptions state
+// the bound of after and that no other member is accepted.
+test("the messages commands declare the cursor parameters and term.messages the registered folder", () => {
+  for (const name of ["term.messages.read", "term.messages.wait"]) {
+    const command = manifest.exposes.commands.find((entry) => entry.name === name);
+    assert.ok(command, `${name} is declared`);
+    assert.deepEqual(command.params, { type: "object", properties: { after: { type: "integer" }, registration: { type: "string" } } });
+    assert.match(command.description, /after is an integer of at least 0/, name);
+    assert.match(command.description, /no other member/, name);
+  }
+  const status = manifest.exposes.status.find((entry) => entry.name === "term.messages");
+  assert.ok(status, "term.messages is declared");
+  assert.deepEqual(status.schema, { type: ["object", "null"], properties: { folder: { type: "string" }, registration: { type: "string" } } });
 });
 
 test("the context menu of the surface copies and pastes", () => {
