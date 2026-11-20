@@ -1843,9 +1843,16 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
   // each after the reply of the input before it, and holds the injection by the reasons of the hold in their order. term.messages
   // is {folder, registration, held, last}, and each decision and each change of the hold is a record of the event log.
   const ENTER = Object.freeze({ type: "key", key: "Enter", shift: false, alt: false, ctrl: false });
+  // The sender of an injected message is the text that its tab shows when the message is injected, its label or its name, on one
+  // line and cut to 40 characters, because a title that a program sets, such as the whole first prompt of an agent, made the prefix
+  // read as part of the input of the person (core docs/spec/messaging.md#injected-message).
+  const SENDER_LIMIT = 40;
+  const senderName = (tab) => {
+    const shown = [...(tab.label ?? tab.title).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, "")];
+    return shown.length > SENDER_LIMIT ? `${shown.slice(0, SENDER_LIMIT - 1).join("")}…` : shown.join("");
+  };
   const createMessagesDelivery = () => {
-    // The last value of core.grid, whose tabs give the tab name of a sender: its `title`, never a title that a program of the tab set,
-    // which core.grid reports as `label` (core docs/spec/messaging.md#injected-message).
+    // The last value of core.grid, whose tabs give the shown text of a sender (core docs/spec/messaging.md#injected-message).
     let grid = null;
     const stopGrid = runtime.status.watch("core.grid", (value) => { grid = value; });
     closing.addEventListener("abort", stopGrid, { once: true });
@@ -1914,7 +1921,7 @@ export async function startTerminal({ id, view, attachImage, detachRegions, side
         pending.unshift(event);
         return;
       }
-      const pasted = await inject({ type: "paste", text: `[메시지 from ${tab.title}] ${message.text}` });
+      const pasted = await inject({ type: "paste", text: `[메시지 from ${senderName(tab)}] ${message.text}` });
       if (pasted.error !== undefined) {
         refusedBy(event, pasted);
         return;
