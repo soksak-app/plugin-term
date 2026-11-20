@@ -2,12 +2,13 @@
 // #hold-for-the-person). The check writes each message with `sok message send` of the application for the surface of a sender tab,
 // as a shell of that tab does, and judges the reply of the send, term.messages of the receiver and the screen of the receiver.
 // The shell `e2e/check-shell` reports no OSC 133 mark, so the injected line, which no command of the shell names, is judged by
-// the error line `[메시지: not found` of the shell. Every wait ends on the status or the screen that it names; no timer judges the
+// the error line of the shell. Every wait ends on the status or the screen that it names; no timer judges the
 // check, and no agent program takes part: the receiver runs a command that waits for a named pipe, or the program
-// `e2e/blocked-prompt`, which reports a blocked record with OSC 7501 and reads one line.
+// `e2e/blocked-prompt`, which reports a blocked record with OSC 7501 and reads one line. The report check answers a message with
+// `sok message send --reply` for the surface of the receiver (core docs/spec/messaging.md#report-request).
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,8 +22,9 @@ const PROMPT = "sh-3.2$";
 const CHECK_SHELL = fileURLToPath(new URL("./check-shell", import.meta.url));
 const BLOCKED_PROMPT = fileURLToPath(new URL("./blocked-prompt", import.meta.url));
 const LIMIT = 180000;
-// The line of the shell for the injected line `[메시지 from <title>] <text>`, whose first word names no command.
-const NOT_FOUND = /\[메시지: (command )?not found/;
+// The line of the shell for the injected line `[메시지 from <title>] <text>`: a report, whose first word names no command, gives
+// `[메시지: not found`, and a message, whose report request holds a parenthesis, gives the syntax error of that parenthesis.
+const NOT_FOUND = /\[메시지: (command )?not found|syntax error near unexpected token `\('/;
 
 /** The text of the rows that the screen status reports, one line for each row without its trailing spaces. */
 const screenLines = (rows) => rows.map((row) => row.map((cell) => (cell.ch === undefined ? " ".repeat(cell.width) : cell.ch)).join("").trimEnd());
@@ -74,7 +76,11 @@ async function projectTerminals(t, app) {
   // Resolves with the lines of the screen of the receiver once they hold.
   const untilScreen = async (holds, message) => screenLines(await p.until(`${PLUGIN}.screen`, (rows) => holds(screenLines(rows)), message,
     { surface: receiver }));
-  return { s, p, root, receiver, sender, folder, send, screen, untilScreen };
+  // Writes a report from the receiver to the folder of the sender with `sok message send --reply` and returns its reply {path, receiver}.
+  const report = (text) => JSON.parse(execFileSync(join(dirname(app.binary), "sok"), ["message", "send", "--reply", join(root, ".soksak", "messages", sender), text], {
+    env: { ...process.env, SOKSAK_CONFIG_DIR: app.configDir, SOKSAK_SURFACE: receiver }, encoding: "utf8",
+  }));
+  return { s, p, root, receiver, sender, folder, send, report, screen, untilScreen };
 }
 
 for (const app of Object.values(APPS)) {
@@ -130,5 +136,29 @@ for (const app of Object.values(APPS)) {
       `${PLUGIN} tab ${receiver} did not submit the injected line after the answer`);
     assert.ok(lines.includes("answer=y"), `the prompt read another line than the answer of the person:\n${lines.join("\n")}`);
     assert.ok(lines.indexOf("answer=y") < lines.findIndex((line) => NOT_FOUND.test(line)), `the injected line came before the answer:\n${lines.join("\n")}`);
+  });
+
+  test(`${app.name}: a message to a ${PLUGIN} terminal asks for a report, and the report reaches the sender without a request`, { timeout: LIMIT }, async (t) => {
+    const { p, root, receiver, sender, folder, send, report } = await projectTerminals(t, app);
+    const senderFolder = join(root, ".soksak", "messages", sender);
+    await p.until(`${PLUGIN}.messages`, (value) => value?.folder === senderFolder && typeof value.registration === "string",
+      `${PLUGIN} tab ${sender} did not register the folder ${senderFolder}`, { surface: sender });
+
+    // The send adds the request for a report to the folder of the sender, which the page injects with the text.
+    const request = send("build the game");
+    assert.equal(readFileSync(join(folder, request.path), "utf8"),
+      `build the game (끝나면 결과를 sok message send --reply ${senderFolder} "<보고>"로 보고하라)`, "the message does not carry the report request");
+    await p.until(`${PLUGIN}.messages`, (value) => value?.last?.path === request.path && value.last.state === "injected",
+      `${PLUGIN} tab ${receiver} did not inject ${request.path}`, { surface: receiver });
+
+    // The report from --reply carries the text alone under a report name, and the page of the sender injects it.
+    const answer = report("done");
+    assert.match(answer.path, new RegExp(`^${receiver}\\.report-[^.]+\\.txt$`), `the report has no report name: ${answer.path}`);
+    assert.deepEqual(answer.receiver, { surface: sender, plugin: PLUGIN, held: null }, `the report reported a hold: ${JSON.stringify(answer)}`);
+    assert.equal(readFileSync(join(senderFolder, answer.path), "utf8"), "done", "the report carries a request");
+    await p.until(`${PLUGIN}.messages`, (value) => value?.last?.path === answer.path && value.last.state === "injected",
+      `${PLUGIN} tab ${sender} did not inject the report ${answer.path}`, { surface: sender });
+    await p.until(`${PLUGIN}.screen`, (rows) => screenLines(rows).some((line) => NOT_FOUND.test(line)),
+      `${PLUGIN} tab ${sender} did not submit the injected report`, { surface: sender });
   });
 }

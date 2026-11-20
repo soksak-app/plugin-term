@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P139: window check는 message의 보고 요청과 `sok message send --reply`의 보고를 판정한다.
 - P138: 주입 message는 보낸 쪽을 주입할 때 보내는 tab이 보이는 text, 즉 label이나 이름으로 한 줄에 40자까지 부른다.
 - P137: 주입 message는 보낸 쪽을 보내는 tab의 tab name, 즉 `core.grid`의 `title`로 부르며, 그 program이 정한 제목으로 결코 부르지 않는다.
 - P136: program `e2e/blocked-prompt`와 함께 window check `e2e/injection.test.mjs`가, command를 실행하는 terminal로 가는 message는 command 뒤에 제출되고, blocked program으로 가는 message는 보류되어 prompt에 byte가 닿지 않으며 답 뒤에 주입됨을 판정한다.

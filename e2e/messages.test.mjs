@@ -131,7 +131,9 @@ for (const app of Object.values(APPS)) {
     assert.equal(arrived.registration, before.registration, "messages_wait answered another registration");
     assert.equal(arrived.messages.length, 1, `messages_wait did not answer one message: ${JSON.stringify(arrived)}`);
     const [message] = arrived.messages;
-    assert.equal(message.text, TEXT, "the message does not hold the sent text");
+    // The send adds the request for a report to the folder of the sender (core docs/spec/messaging.md#report-request).
+    assert.equal(message.text, `${TEXT} (끝나면 결과를 sok message send --reply ${join(root, ".soksak", "messages", sender)} "<보고>"로 보고하라)`,
+      "the message does not hold the sent text and its report request");
     assert.equal(message.from, sender, "the sender of the message is not the surface of the sending terminal");
     assert.equal(message.path, name, "the message is not the file that sok message send wrote");
     assert.ok(message.path.startsWith(`${sender}.`) && message.path.endsWith(".txt"), `the message file ${message.path} is not named by its sender`);
