@@ -27,15 +27,19 @@ test("@soksak/window-check is a development dependency that names a core release
   assert.equal(PACKAGE.files.some((entry) => entry === "e2e" || entry.startsWith("e2e/")), false, "the release must not carry the window checks");
 });
 
-test("e2e holds the window check of the term view and its shell, and every check file imports only window-check modules and its own folder", { timeout: 1000 }, () => {
+// The check of the messages runs its agent with the MCP client of @modelcontextprotocol/sdk, the client library of the ecosystem, so
+// that no agent program takes part; a check file imports no other package.
+test("e2e holds the window checks of the term view and of the messages and its shell, and every check file imports only node, window-check and MCP client modules and its own folder", { timeout: 1000 }, () => {
   const folder = path.join(ROOT, "e2e");
   assert.ok(existsSync(path.join(folder, "term-view.test.mjs")), "e2e/term-view.test.mjs is missing");
+  assert.ok(existsSync(path.join(folder, "messages.test.mjs")), "e2e/messages.test.mjs is missing");
   assert.ok(statSync(path.join(folder, "check-shell")).mode & 0o111, "e2e/check-shell is not executable");
   for (const file of readdirSync(folder).filter((name) => name.endsWith(".mjs"))) {
     const source = readFileSync(path.join(folder, file), "utf8");
     for (const [, specifier] of source.matchAll(/^import[^"]*"([^"]+)"/gm)) {
-      assert.ok(specifier.startsWith("node:") || specifier.startsWith("@soksak/window-check/") || specifier.startsWith("./"),
-        `e2e/${file} imports ${specifier}, which is neither a node module, a window-check module nor a file of e2e`);
+      assert.ok(specifier.startsWith("node:") || specifier.startsWith("@soksak/window-check/") ||
+        specifier.startsWith("@modelcontextprotocol/sdk/client/") || specifier.startsWith("./"),
+        `e2e/${file} imports ${specifier}, which is neither a node module, a window-check module, an MCP client module nor a file of e2e`);
     }
   }
 });
