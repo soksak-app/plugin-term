@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P183: version은 0.0.19이고 alacritty sidecar 0.0.13을 요구한다.
 - P181: 버전이 0.0.17이다. `engines.soksak` `^0.0.45`와 core release v0.0.45의 window-check.
 - P182: 버전은 0.0.18이다. `engines.soksak` `^0.0.46`, core release v0.0.46의 window-check, sidecar 범위 `^0.0.10`.
 - P180: plugin이 kit 0.0.16을 pin한다.

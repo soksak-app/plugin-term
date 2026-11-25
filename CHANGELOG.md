@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- P183: The version is 0.0.19 with the alacritty sidecar 0.0.13.
 - P181: The version is 0.0.17: `engines.soksak` `^0.0.45` and the window-check of core release v0.0.45.
 - P182: The version is 0.0.18: `engines.soksak` `^0.0.46`, the window-check of core release v0.0.46, and the sidecar range `^0.0.10`.
 - P180: The plugin pins the kit 0.0.16.

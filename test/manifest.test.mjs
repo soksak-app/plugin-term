@@ -166,3 +166,10 @@ test("the image region declares the lease presentation mode", { timeout: 1000 },
   assert.equal(region.kind, "image");
   assert.equal(region.present, "lease");
 });
+
+// The plugin requires the alacritty sidecar 0.0.13, which accepts an open without image after a reconnect (sidecar alacritty S257,
+// P183). An installation keeps the sidecar version in use while it satisfies every range, so only a raised lower bound installs a
+// newer sidecar (core docs/spec/installation.md#version-selection).
+test("the plugin requires the alacritty sidecar release that accepts an open without image after a reconnect (P183)", { timeout: 1000 }, () => {
+  assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-alacritty": "^0.0.13" });
+});
